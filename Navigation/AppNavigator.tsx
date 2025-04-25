@@ -13,11 +13,16 @@ import SearchScreen from '../screens/SearchScreen';
 import ArCamScreen from '../screens/ArCamScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import LandmarkProvider from '../provider/LandmarkProvider';
+import SelectedLandmarkSheet from '../components/selectedLandmarkSheet';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
     return (
+        <GestureHandlerRootView>
+            <LandmarkProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
@@ -31,6 +36,9 @@ const AppNavigator = () => {
             <Stack.Screen name="Notification" component={NotificationScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
         </Stack.Navigator>
+        <SelectedLandmarkSheet/>
+            </LandmarkProvider>
+        </GestureHandlerRootView>
     );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     SafeAreaView,
     View,
@@ -25,7 +25,11 @@ import TopHeader from "../components/TopHeader";
 import { AntDesign } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
 import BottomFooter from "../components/BottomFooter";
-
+import Mapbox, { Camera, LocationPuck, MapView, Images, VectorSource } from '@rnmapbox/maps';
+import LandmarkMarkers from "../components/LandmarkMarkers";
+import LineRoute from "../components/LineRoute";
+import Geolocation from "@react-native-community/geolocation";
+import { useLandmark } from "../provider/LandmarkProvider";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -53,8 +57,9 @@ const categories = [
         uri: "https://img.icons8.com/ios-filled/100/9c8061/church.png",
     },
 ];
-
+Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_KEY)
 export default function MapsScreen() {
+
     const navigation = useNavigation<NavigationProp>();
     const scale = useSharedValue(1);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -68,6 +73,30 @@ export default function MapsScreen() {
             scale.value = withTiming(1);
         },
     });
+    const { directionCoordinates, duration, distance } = useLandmark();
+    console.log("Route Time: ", duration, "Distance:", distance);
+
+    const [coords, setCoords] = useState<[number, number]>([0, 0]);
+    const getPermissionLocation = () => {
+        Geolocation.getCurrentPosition(
+            (position) => {
+                const userCoords: [number, number] = [position.coords.longitude, position.coords.latitude];
+                setCoords(userCoords);
+                console.log("User's Location: ", position.coords);
+            },
+            (error) => {
+
+                console.log("Location Error: ", error);
+            },
+            { enableHighAccuracy: true }
+        );
+    };
+    useEffect(() => {
+        getPermissionLocation();
+        return () => {
+
+        };
+    }, []);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -107,39 +136,63 @@ export default function MapsScreen() {
                     <Feather
                         name={showCategories ? "chevron-up" : "chevron-down"}
                         size={24}
-                        color="#493628"
+                        color="#ffffff"
                     />
                 </TouchableOpacity>
             </View>
-
+           
             {/* Map */}
             <ScrollView contentContainerStyle={styles.mapScroll}>
                 <PinchGestureHandler onGestureEvent={pinchHandler}>
                     <Animated.View style={[styles.mapWrapper, animatedStyle]}>
-                        <Image
-                            source={{
-                                uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/y7gokhg4_expires_30_days.png",
-                            }}
-                            style={styles.mapImage}
-                            resizeMode="cover"
-                        />
+                        
                     </Animated.View>
                 </PinchGestureHandler>
             </ScrollView>
+
+            <View style={styles.container}>
+                <MapView style={styles.map} styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" rotateEnabled >
+                    <Camera zoomLevel={15} centerCoordinate={[120.97542723276051, 14.591293316236834]} pitch={60} maxBounds={{
+                        ne: [120.98057084428427, 14.599918973377212],
+                        sw: [120.96574001513486, 14.576564367241561],
+
+                    }} />
+
+                    <LocationPuck puckBearingEnabled={true} puckBearing="heading" pulsing={{ isEnabled: true }} androidRenderMode="gps"
+                    />
+
+                    <LandmarkMarkers />
+
+                    {directionCoordinates && (
+                        <LineRoute coordinates={directionCoordinates} />)}
+
+                </MapView>
+            </View>
             <BottomFooter active="Maps" />
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+  
+    map:{
+      height:"100%",
+      width: "100%"
+    },
+    puck: {
+        width: 50,
+        height: 50
+    },
     safeArea: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: "#493628",
+      
     },
     categoryContainer: {
+        flexDirection:"column",
         backgroundColor: "#493628",
-        paddingVertical: 12,
-        paddingLeft: 10,
+        alignItems:"center"
+        
     },
     category: {
         alignItems: "center",
@@ -162,8 +215,11 @@ const styles = StyleSheet.create({
     arrowToggle: {
         alignItems: "center",
         marginVertical: 6,
+
+
     },
     mapScroll: {
+   
         alignItems: "center",
         paddingBottom: 30,
     },

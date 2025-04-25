@@ -1,0 +1,50 @@
+[
+    {
+        "id": "1",
+        "name": "Fort Santiago",
+        "imageUrl": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/49/e9/19/fort-santiago.jpg?w=800&h=500&s=1",
+        "latitude": 14.594277826320521,
+        "longitude": 120.97040127116568,
+        "status": "Open",
+        "entrance": "₱75.00",
+        "address": "Intramuros, Manila,1002 Metro Manila",
+        "description": "Fort Santiago was built in 1590 on the site of the Citadel of Rajah Sulayman as the main defense fortress of Manila during the Spanish colonial era. The Fort was declared a National Cultural Treasure in 2014",
+        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM"
+    },
+    {
+        "id": "2",
+        "name": "Casa Manila Museum",
+        "imageUrl": "https://intramuros.gov.ph/wp-content/uploads/2022/07/0-02-06-b5330020f121ec2366fb69e6783f64af3ac3f55efa72a8c1231f28664cbccdb3_1c6dad7e95896a.jpg",
+        "latitude": 14.589679080170802,
+        "longitude": 120.975058420238, 
+        "status": "Open",
+        "entrance": "₱75.00",
+        "address": "Casa Manila, Plaza San Luis Complex, General Luna cor. Real Sts., Intramuros, Manila",
+        "description": "A lifestyle museum featuring the domestic life of 19th Century upper-class families in Manila. Constructed in 1981, the museum features one of the largest and finest collection of antique house-hold items in the Philippines.",
+        "openingHours": "Mon-Fri: 8:00 AM - 5:00 PM"
+    },
+    {
+        "id": "3",
+        "name": "Museo de Intramuros",
+        "imageUrl": "https://intramuros.gov.ph/wp-content/uploads/2023/03/13.jpg",
+        "latitude": 14.590063260111922,
+        "longitude": 120.97356378161406,
+        "status": "Open",
+        "entrance": "₱75.00",
+        "address": "Biglang Awa St, Caloocan, Metro Manila",
+        "description": "The Museo de Intramuros comprises two important reconstructions: the San Ignacio Church and the Mission House of the Society of Jesus. As the name denotes, the complex now houses the vast ecclesiastical collection of the Intramuros Administration.  ",
+        "openingHours": "Mon-Fri: 7:30 AM - 6:00 PM"
+    },
+    {
+        "id": "4",
+        "name": "Baluarte de San Diego",
+        "imageUrl": "https://intramuros.gov.ph/wp-content/uploads/2023/03/01.jpg",
+        "latitude": 14.585515580031812,
+        "longitude": 120.97561497976201,
+        "status": "Open",
+        "entrance": "₱75.00",
+        "address": "HXPG+564, Sta. Lucia St, Intramuros, Manila, 1002 Metro Manila",
+        "description": "Baluarte de San Diego is the oldest structure in Intramuros and was originally built as a watchtower in 1587. It was declared a National Cultural Treasure in 2014.",
+        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM"
+    }
+]
