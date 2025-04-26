@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from "react";
 import * as Location from "expo-location";
-import { getDirections } from "../directions";
+import { getDirections } from "../services/directions";
 const LandmarkContext = createContext({});
 
 export default function LandmarkProvider({ children }: PropsWithChildren)  {
