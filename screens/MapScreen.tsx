@@ -16,7 +16,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
-import { PinchGestureHandler, PinchGestureHandlerGestureEvent } from "react-native-gesture-handler";
+import {PinchGestureHandlerGestureEvent } from "react-native-gesture-handler";
 import Animated, {
     useSharedValue,
     useAnimatedGestureHandler,
@@ -25,16 +25,15 @@ import Animated, {
 
 } from "react-native-reanimated";
 import TopHeader from "../components/TopHeader";
-import { AntDesign } from "@expo/vector-icons";
+
 import { Feather } from "@expo/vector-icons";
 import BottomFooter from "../components/BottomFooter";
 import Mapbox, { Camera, LocationPuck, MapView, Images, VectorSource } from '@rnmapbox/maps';
 import LandmarkMarkers from "../components/LandmarkMarkers";
 import LineRoute from "../components/LineRoute";
-import Geolocation from "@react-native-community/geolocation";
 import { useLandmark } from "../provider/LandmarkProvider";
 import LineBoundary from "../components/LineBoundary";
-
+import * as Location from 'expo-location'
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -60,6 +59,15 @@ const categories = [
     {
         label: "Churches",
         uri: "https://img.icons8.com/ios-filled/100/9c8061/church.png",
+    }, 
+    {
+        label: "Restrooms",
+        uri: "https://img.icons8.com/ios-filled/100/9c8061/toilet.png",
+    },
+
+    {
+        label: "Shops",
+        uri: "https://img.icons8.com/ios-filled/100/9c8061/shop.png",
     },
 ];
 Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_KEY)
@@ -70,7 +78,6 @@ export default function MapsScreen() {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [showCategories, setShowCategories] = useState(true);
     const [showBottomNav, setShowBottomNav] = useState(true);
-
 
     const [showWeatherInfo, setShowWeatherInfo] = useState(false);
     const weatherInfoTranslateX = useSharedValue(100);
@@ -83,6 +90,7 @@ export default function MapsScreen() {
         opacity: weatherInfoHeight.value === 0 ? 0 : 1,
     }));
 
+    
     const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
         onActive: (event) => {
             scale.value = event.scale;
@@ -97,7 +105,7 @@ export default function MapsScreen() {
     console.log("Route Time: ", duration, "Distance:", distance);
 
     const [coords, setCoords] = useState<[number, number]>([0, 0]);
-
+    
 
     useEffect(() => {
         fetch("https://api.weatherapi.com/v1/forecast.json?key=5187868995f64f229f565521252604&q=Intramuros")
@@ -105,6 +113,7 @@ export default function MapsScreen() {
             .then((result) => {
                 setLoading(false);
                 setResponse(result);
+               
             },
                 (error) => {
                     setLoading(false);
@@ -114,28 +123,20 @@ export default function MapsScreen() {
     }, [])
 
 
-    const getPermissionLocation = () => {
-        Geolocation.getCurrentPosition(
-            (position) => {
-                const userCoords: [number, number] = [position.coords.longitude, position.coords.latitude];
-                setCoords(userCoords);
-                console.log("User's Location: ", position.coords);
-            },
-            (error) => {
-
-                console.log("Location Error: ", error);
-            },
-            { enableHighAccuracy: true }
-        );
-    };
     useEffect(() => {
-        getPermissionLocation();
-        return () => {
-
+        const getLocation = async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === "granted") {
+                const location = await Location.getCurrentPositionAsync({});
+                console.log("User's location: ", location);
+                setCoords([location.coords.longitude, location.coords.latitude]);  
+            } else {
+                console.log("Location permission not granted.");
+            }
         };
+
+        getLocation();
     }, []);
-
-
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
     }));
@@ -205,10 +206,12 @@ export default function MapsScreen() {
 
                 </MapView>
                 <View style={styles.weatherButton}>
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity 
+                    
+                    onPress={() => {
                         const isShowing = !showWeatherInfo;
                         setShowWeatherInfo(isShowing);
-
+                     
                         weatherInfoTranslateX.value = withTiming(isShowing ? 0 : 100, { duration: 500 });
                         weatherInfoWidth.value = withTiming(isShowing ? 330 : 0, { duration: 500 });
                         weatherInfoHeight.value = withTiming(isShowing ? 450 : 0, { duration: 500 });
