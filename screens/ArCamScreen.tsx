@@ -1,27 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Camera, CameraPermissionRequestResult, CameraDevice } from 'react-native-vision-camera';
-import TopHeader from '../components/TopHeader';
+import { Camera } from 'react-native-vision-camera';
 import BottomFooter from '../components/BottomFooter';
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../Navigation/types";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Notification">;
 const ArCamScreen = () => {
-    const navigation = useNavigation<NavigationProp>();
-
     const [permissionGranted, setPermissionGranted] = useState(false);
-    const [cameraDevice, setCameraDevice] = useState<CameraDevice | null>(null);
+    const [cameraDevice, setCameraDevice] = useState(null);
 
     useEffect(() => {
-
-
         const requestPermission = async () => {
-            const permissionStatus: CameraPermissionRequestResult = await Camera.requestCameraPermission();
-
+            const permissionStatus = await Camera.requestCameraPermission();
             if (permissionStatus === 'granted') {
-
                 setPermissionGranted(true);
                 const devices = await Camera.getAvailableCameraDevices();
                 setCameraDevice(devices.find(device => device.position === 'back') || devices[0]);
@@ -34,11 +23,8 @@ const ArCamScreen = () => {
     }, []);
 
     if (!permissionGranted || !cameraDevice) {
-
         return (
-
             <View style={styles.container}>
-
                 <Text>Camera permission is required or camera device not available.</Text>
             </View>
         );
@@ -46,16 +32,8 @@ const ArCamScreen = () => {
 
     return (
         <View style={styles.container}>
-
-            <Camera
-
-                style={styles.camera}
-                device={cameraDevice}
-                isActive={true}
-            />
-
+            <Camera style={styles.camera} device={cameraDevice} isActive={true} />
             <BottomFooter active="ArCam" />
-
         </View>
     );
 };

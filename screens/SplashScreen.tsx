@@ -3,11 +3,10 @@ import { View, Image, StyleSheet, Animated, Text } from "react-native";
 
 export default function SplashScreen({ navigation }: any) {
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.8)).current; // Start a little smaller
-    const loadingProgress = useRef(new Animated.Value(0)).current; // For the loading progress
+    const scaleAnim = useRef(new Animated.Value(0.8)).current;
+    const loadingProgress = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Animated parallel for logo fade-in and scale-up
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -20,15 +19,13 @@ export default function SplashScreen({ navigation }: any) {
                 tension: 80,
                 useNativeDriver: true,
             }),
-            // Animated progress bar from 0 to 100%
             Animated.timing(loadingProgress, {
                 toValue: 1,
-                duration: 2800, // Duration of the loading progress animation
-                useNativeDriver: false, // Since it's a width animation, no need for native driver
+                duration: 2800,
+                useNativeDriver: false,
             }),
         ]).start();
 
-        // Timeout to navigate after the splash screen completes
         const timeout = setTimeout(() => {
             navigation.replace("Login");
         }, 2800);
@@ -56,7 +53,6 @@ export default function SplashScreen({ navigation }: any) {
 
                 <Text style={styles.version}>Version 1.0.0</Text>
 
-                {/* Progress bar animation */}
                 <View style={styles.progressContainer}>
                     <Animated.View
                         style={[styles.progressBar, {
@@ -75,7 +71,7 @@ export default function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F5F0E6", // light beige for Intramuros vibe
+        backgroundColor: "#F5F0E6",
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 20,
@@ -111,15 +107,15 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     progressContainer: {
-        width: '80%', // Width of the progress bar container
-        height: 8, // Height of the progress bar
-        backgroundColor: "#e0e0e0", // Light background color for the bar
+        width: '80%',
+        height: 8,
+        backgroundColor: "#e0e0e0",
         borderRadius: 4,
         marginTop: 20,
     },
     progressBar: {
         height: '100%',
-        backgroundColor: "#603F26", // Soft blue progress color
+        backgroundColor: "#603F26",
         borderRadius: 4,
     },
 });

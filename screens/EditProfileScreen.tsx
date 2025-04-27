@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import {
     SafeAreaView,
-    View,
     ScrollView,
+    View,
     Text,
     TextInput,
     TouchableOpacity,
@@ -12,13 +12,10 @@ import {
 } from "react-native";
 import { launchImageLibrary } from "react-native-image-picker";
 import RNPickerSelect from "react-native-picker-select";
-import TopHeader from "../components/TopHeader";
-import BottomFooter from "../components/BottomFooter";
-import Icon from 'react-native-vector-icons/FontAwesome'; // Import the icon library
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const { width } = Dimensions.get("window");
-
-const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'; // Set the default avatar URL
+const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
 const EditProfileScreen = () => {
     const [name, setName] = useState("TourKita");
@@ -27,7 +24,7 @@ const EditProfileScreen = () => {
     const [userType, setUserType] = useState("");
     const [gender, setGender] = useState("");
     const [email, setEmail] = useState("TourKita@gmail.com");
-    const [imageUri, setImageUri] = useState(DEFAULT_AVATAR); // Use default avatar initially
+    const [imageUri, setImageUri] = useState(DEFAULT_AVATAR);
 
     const handleImagePick = () => {
         launchImageLibrary({ mediaType: "photo" }, (response) => {
@@ -37,128 +34,75 @@ const EditProfileScreen = () => {
         });
     };
 
+    const handleInputChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
+        setter(value);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
-            <TopHeader title="Edit Profile" onSupportPress={() => { }} />
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.profileImageContainer}>
-                    <TouchableOpacity
-                        style={styles.profileImageWrapper}
-                        onPress={handleImagePick}
-                    >
-                        {imageUri ? (
-                            <Image source={{ uri: imageUri }} style={styles.profileImage} />
-                        ) : (
-                            <View style={styles.profileImagePlaceholder} />
-                        )}
-                        <Icon
-                            name="camera"
-                            size={30}
-                            color="#493628" // You can customize the color here
-                            style={styles.cameraIcon}
-                        />
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity style={styles.profileImageWrapper} onPress={handleImagePick}>
+                    <Image source={{ uri: imageUri }} style={styles.profileImage} />
+                    <Icon name="camera" size={30} color="#493628" style={styles.cameraIcon} />
+                </TouchableOpacity>
 
-                <View style={styles.formGroup}>
-                    <Label text="Name" />
-                    <Input placeholder="TourKita" value={name} onChangeText={setName} />
-                </View>
-                <View style={styles.formGroup}>
-                    <Label text="Contact Number" />
-                    <Input
-                        placeholder="Enter contact"
-                        value={contactNumber}
-                        onChangeText={setContactNumber}
-                    />
-                </View>
-                <View style={styles.formGroup}>
-                    <Label text="Age" />
-                    <Input placeholder="Enter age" value={age} onChangeText={setAge} />
-                </View>
+                <FormInput label="Name" value={name} onChange={handleInputChange(setName)} placeholder="TourKita" />
+                <FormInput label="Contact Number" value={contactNumber} onChange={handleInputChange(setContactNumber)} placeholder="Enter contact" />
+                <FormInput label="Age" value={age} onChange={handleInputChange(setAge)} placeholder="Enter age" />
 
-                <View style={styles.formGroup}>
-                    <Label text="User Type" />
-                    <RNPickerSelect
-                        onValueChange={(value) => setUserType(value)}
-                        placeholder={{ label: "Select user type", value: "" }}
-                        value={userType}
-                        items={[
-                            { label: "Student", value: "student" },
-                            { label: "Tourist", value: "tourist" },
-                            { label: "Local", value: "local" },
-                        ]}
-                        style={{
-                            inputIOS: { ...styles.pickerInput, width: width - 80 }, // Adjust the width dynamically
-                            inputAndroid: { ...styles.pickerInput, width: width - 80 }, // Adjust the width dynamically
-                        }}
-                        useNativeAndroidPickerStyle={false}
-                    />
-                </View>
+                <FormPicker label="User Type" value={userType} onValueChange={setUserType} items={[
+                    { label: "Student", value: "student" },
+                    { label: "Tourist", value: "tourist" },
+                ]} />
+                <FormPicker label="Gender" value={gender} onValueChange={setGender} items={[
+                    { label: "Male", value: "Male" },
+                    { label: "Female", value: "Female" },
+                    { label: "Other", value: "Other" },
+                ]} />
 
-                <View style={styles.formGroup}>
-                    <Label text="Gender" />
-                    <RNPickerSelect
-                        onValueChange={(value) => setGender(value)}
-                        placeholder={{ label: "Select gender", value: "" }}
-                        value={gender}
-                        items={[
-                            { label: "Male", value: "Male" },
-                            { label: "Female", value: "Female" },
-                            { label: "Other", value: "Other" },
-                        ]}
-                        style={{
-                            inputIOS: { ...styles.pickerInput, width: width - 80 }, // Adjust the width dynamically
-                            inputAndroid: { ...styles.pickerInput, width: width - 80 }, // Adjust the width dynamically
-                        }}
-                        useNativeAndroidPickerStyle={false}
-                    />
-                </View>
-
-                <View style={styles.formGroup}>
-                    <Label text="Email" />
-                    <Input placeholder="TourKita@gmail.com" value={email} onChangeText={setEmail} />
-                </View>
+                <FormInput label="Email" value={email} onChange={handleInputChange(setEmail)} placeholder="TourKita@gmail.com" />
 
                 <TouchableOpacity style={styles.saveButton}>
                     <Text style={styles.saveButtonText}>Save</Text>
                 </TouchableOpacity>
             </ScrollView>
-            <BottomFooter active="Profile" />
         </SafeAreaView>
     );
 };
 
-const Label = ({ text }: { text: string }) => (
-    <Text style={styles.label}>{text}</Text>
-);
-
-const Input = ({
-    placeholder,
-    value,
-    onChangeText,
-}: {
-    placeholder: string;
-    value: string;
-    onChangeText: (text: string) => void;
-}) => (
-    <View style={styles.inputWrapper}>
+const FormInput = ({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (text: string) => void, placeholder: string }) => (
+    <View style={styles.formGroup}>
+        <Text style={styles.label}>{label}</Text>
         <TextInput
             style={styles.input}
             placeholder={placeholder}
             placeholderTextColor="#A5A5A5"
             value={value}
-            onChangeText={onChangeText}
+            onChangeText={onChange}
+        />
+    </View>
+);
+
+// Form picker component for reusable picker input
+const FormPicker = ({ label, value, onValueChange, items }: { label: string, value: string, onValueChange: (value: string) => void, items: { label: string, value: string }[] }) => (
+    <View style={styles.formGroup}>
+        <Text style={styles.label}>{label}</Text>
+        <RNPickerSelect
+            onValueChange={onValueChange}
+            value={value}
+            items={items}
+            style={{
+                inputIOS: { ...styles.pickerInput, width: width - 80 },
+                inputAndroid: { ...styles.pickerInput, width: width - 80 },
+            }}
+            useNativeAndroidPickerStyle={false}
         />
     </View>
 );
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FFFFFF" },
-    scrollContent: {
-        paddingBottom: 100,
-    },
-    profileImageContainer: { alignItems: "center", marginTop: 20, marginBottom: 10 },
+    scrollContent: { paddingBottom: 100 },
     profileImageWrapper: {
         width: 120,
         height: 120,
@@ -168,38 +112,20 @@ const styles = StyleSheet.create({
         alignItems: "center",
         position: "relative",
     },
-    profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-    },
-    profileImagePlaceholder: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: "#CCCCCC",
-    },
-    cameraIcon: {
-        position: "absolute",
-        bottom: 5,
-        right: 5,
-    },
+    profileImage: { width: 120, height: 120, borderRadius: 60 },
+    cameraIcon: { position: "absolute", bottom: 5, right: 5 },
     formGroup: { marginHorizontal: 40, marginTop: 25 },
     label: { color: "#493628", fontSize: 14, marginBottom: 10 },
-    inputWrapper: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#603F26",
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF",
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-    },
     input: {
         flex: 1,
         color: "#000000",
         fontSize: 16,
+        borderWidth: 1,
+        borderColor: "#603F26",
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        backgroundColor: "#FFFFFF",
     },
     pickerInput: {
         fontSize: 16,
@@ -219,11 +145,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         alignItems: "center",
     },
-    saveButtonText: {
-        color: "#493628",
-        fontSize: 17,
-        fontWeight: "bold",
-    },
+    saveButtonText: { color: "#493628", fontSize: 17, fontWeight: "bold" },
 });
 
 export default EditProfileScreen;

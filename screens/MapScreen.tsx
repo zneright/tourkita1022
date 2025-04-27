@@ -16,7 +16,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
-import {PinchGestureHandlerGestureEvent } from "react-native-gesture-handler";
+import { PinchGestureHandlerGestureEvent } from "react-native-gesture-handler";
 import Animated, {
     useSharedValue,
     useAnimatedGestureHandler,
@@ -59,7 +59,7 @@ const categories = [
     {
         label: "Churches",
         uri: "https://img.icons8.com/ios-filled/100/9c8061/church.png",
-    }, 
+    },
     {
         label: "Restrooms",
         uri: "https://img.icons8.com/ios-filled/100/9c8061/toilet.png",
@@ -90,7 +90,7 @@ export default function MapsScreen() {
         opacity: weatherInfoHeight.value === 0 ? 0 : 1,
     }));
 
-    
+
     const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
         onActive: (event) => {
             scale.value = event.scale;
@@ -105,7 +105,7 @@ export default function MapsScreen() {
     console.log("Route Time: ", duration, "Distance:", distance);
 
     const [coords, setCoords] = useState<[number, number]>([0, 0]);
-    
+
 
     useEffect(() => {
         fetch("https://api.weatherapi.com/v1/forecast.json?key=5187868995f64f229f565521252604&q=Intramuros")
@@ -113,7 +113,7 @@ export default function MapsScreen() {
             .then((result) => {
                 setLoading(false);
                 setResponse(result);
-               
+
             },
                 (error) => {
                     setLoading(false);
@@ -129,7 +129,7 @@ export default function MapsScreen() {
             if (status === "granted") {
                 const location = await Location.getCurrentPositionAsync({});
                 console.log("User's location: ", location);
-                setCoords([location.coords.longitude, location.coords.latitude]);  
+                setCoords([location.coords.longitude, location.coords.latitude]);
             } else {
                 console.log("Location permission not granted.");
             }
@@ -206,16 +206,16 @@ export default function MapsScreen() {
 
                 </MapView>
                 <View style={styles.weatherButton}>
-                    <TouchableOpacity 
-                    
-                    onPress={() => {
-                        const isShowing = !showWeatherInfo;
-                        setShowWeatherInfo(isShowing);
-                     
-                        weatherInfoTranslateX.value = withTiming(isShowing ? 0 : 100, { duration: 500 });
-                        weatherInfoWidth.value = withTiming(isShowing ? 330 : 0, { duration: 500 });
-                        weatherInfoHeight.value = withTiming(isShowing ? 450 : 0, { duration: 500 });
-                    }}>
+                    <TouchableOpacity
+
+                        onPress={() => {
+                            const isShowing = !showWeatherInfo;
+                            setShowWeatherInfo(isShowing);
+
+                            weatherInfoTranslateX.value = withTiming(isShowing ? 0 : 100, { duration: 500 });
+                            weatherInfoWidth.value = withTiming(isShowing ? 330 : 0, { duration: 500 });
+                            weatherInfoHeight.value = withTiming(isShowing ? 450 : 0, { duration: 500 });
+                        }}>
                         <Image
                             source={require('../assets/sunny.png')}
                             style={styles.weatherIcon}
@@ -262,7 +262,7 @@ export default function MapsScreen() {
                                                     backgroundColor: "rgba(255, 255, 255, 0.4)",
                                                     padding: 10,
                                                     borderRadius: 10,
-                                                    justifyContent:"space-around"
+                                                    justifyContent: "space-around"
                                                 }}
                                             >
                                                 <Text style={{ fontWeight: "bold", width: 50 }}>

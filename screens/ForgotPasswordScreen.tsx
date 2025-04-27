@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import {
     SafeAreaView,
-    View,
     ScrollView,
-    Image,
     Text,
     TextInput,
     TouchableOpacity,
@@ -46,62 +44,41 @@ const ForgotPasswordScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.content}>
-                    <Image
-                        source={{
-                            uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/5bskn3a3_expires_30_days.png",
-                        }}
-                        resizeMode="stretch"
-                        style={styles.image}
-                    />
-
-                    <Text style={styles.title}>Forgot Password</Text>
-
-                    <Text style={styles.subtitle}>
-                        Enter your email address below to receive a 4-digit code.
-                    </Text>
-
-                    <TextInput
-                        style={styles.input}
-                        keyboardType="email-address"
-                        value={email}
-                        onChangeText={setEmail}
-                        placeholder="Enter your email"
-                        placeholderTextColor="#999"
-                    />
-
-                    {!isCodeSent && (
-                        <TouchableOpacity style={styles.sendCodeButton} onPress={handleSendCode}>
-                            <Text style={styles.sendCodeText}>Send Code</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    {isCodeSent && (
-                        <>
-                            <TextInput
-                                style={[styles.input, styles.codeInput]}
-                                keyboardType="numeric"
-                                maxLength={4}
-                                value={code}
-                                onChangeText={setCode}
-                                placeholder="1234"
-                                placeholderTextColor="#999"
-                            />
-
-                            <TouchableOpacity onPress={() => alert("Code resent!")}>
-                                <Text style={styles.resendCodeText}>Resend Code</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.confirmButton} onPress={handleReset}>
-                                <Text style={styles.confirmText}>Reset Password</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
-
-                    <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                        <Text style={styles.footerText}>Back to Login</Text>
+                <Text style={styles.title}>Forgot Password</Text>
+                <TextInput
+                    style={styles.input}
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#999"
+                />
+                {!isCodeSent ? (
+                    <TouchableOpacity style={styles.sendCodeButton} onPress={handleSendCode}>
+                        <Text style={styles.sendCodeText}>Send Code</Text>
                     </TouchableOpacity>
-                </View>
+                ) : (
+                    <>
+                        <TextInput
+                            style={[styles.input, styles.codeInput]}
+                            keyboardType="numeric"
+                            maxLength={4}
+                            value={code}
+                            onChangeText={setCode}
+                            placeholder="1234"
+                            placeholderTextColor="#999"
+                        />
+                        <TouchableOpacity onPress={() => alert("Code resent!")}>
+                            <Text style={styles.resendCodeText}>Resend Code</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.confirmButton} onPress={handleReset}>
+                            <Text style={styles.confirmText}>Reset Password</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                    <Text style={styles.footerText}>Back to Login</Text>
+                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
@@ -119,28 +96,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         padding: 24,
     },
-    content: {
-        alignItems: "center",
-        paddingBottom: 40,
-    },
-    image: {
-        width: 180,
-        height: 180,
-        borderRadius: 90,
-        marginBottom: 24,
-    },
     title: {
         fontSize: 24,
         color: "#603F26",
         fontWeight: "bold",
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: "#6B5E5E",
+        marginBottom: 20,
         textAlign: "center",
-        marginBottom: 24,
-        paddingHorizontal: 16,
     },
     input: {
         width: "100%",
@@ -150,7 +111,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 12,
         fontSize: 16,
-        backgroundColor: "#fff",
         marginBottom: 16,
     },
     codeInput: {
@@ -191,5 +151,6 @@ const styles = StyleSheet.create({
     footerText: {
         color: "#6B5E5E",
         fontSize: 14,
+        textAlign: "center",
     },
 });
