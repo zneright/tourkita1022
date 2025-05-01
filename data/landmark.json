@@ -3,25 +3,27 @@
         "id": "1",
         "name": "Fort Santiago",
         "imageUrl": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/49/e9/19/fort-santiago.jpg?w=800&h=500&s=1",
-        "latitude":14.592487343001164,
+        "latitude": 14.592487343001164,
         "longitude": 120.9715856646472,
         "status": "Open",
         "entrance": "₱75.00",
         "address": "Intramuros, Manila,1002 Metro Manila",
-        "description": "Fort Santiago was built in 1590 on the site of the Citadel of Rajah Sulayman as the main defense fortress of Manila during the Spanish colonial era. The Fort was declared a National Cultural Treasure in 2014",
-        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM"
+        "description": "Fort Santiago was built in 1590 on the site of the Citadel of Rajah Sulayman as the main defense fortress of Manila during the Spanish colonial era. The Fort was declared a National Cultural Treasure in 2014.",
+        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM",
+        "category": "Tourist Site"
     },
     {
         "id": "2",
         "name": "Casa Manila Museum",
         "imageUrl": "https://intramuros.gov.ph/wp-content/uploads/2022/07/0-02-06-b5330020f121ec2366fb69e6783f64af3ac3f55efa72a8c1231f28664cbccdb3_1c6dad7e95896a.jpg",
         "latitude": 14.589679080170802,
-        "longitude": 120.975058420238, 
+        "longitude": 120.975058420238,
         "status": "Open",
         "entrance": "₱75.00",
         "address": "Casa Manila, Plaza San Luis Complex, General Luna cor. Real Sts., Intramuros, Manila",
         "description": "A lifestyle museum featuring the domestic life of 19th Century upper-class families in Manila. Constructed in 1981, the museum features one of the largest and finest collection of antique house-hold items in the Philippines.",
-        "openingHours": "Mon-Fri: 8:00 AM - 5:00 PM"
+        "openingHours": "Mon-Fri: 8:00 AM - 5:00 PM",
+        "category": "Tourist Site"
     },
     {
         "id": "3",
@@ -32,8 +34,9 @@
         "status": "Open",
         "entrance": "₱75.00",
         "address": "Biglang Awa St, Caloocan, Metro Manila",
-        "description": "The Museo de Intramuros comprises two important reconstructions: the San Ignacio Church and the Mission House of the Society of Jesus. As the name denotes, the complex now houses the vast ecclesiastical collection of the Intramuros Administration.  ",
-        "openingHours": "Mon-Fri: 7:30 AM - 6:00 PM"
+        "description": "The Museo de Intramuros comprises two important reconstructions: the San Ignacio Church and the Mission House of the Society of Jesus. As the name denotes, the complex now houses the vast ecclesiastical collection of the Intramuros Administration.",
+        "openingHours": "Mon-Fri: 7:30 AM - 6:00 PM",
+        "category": "Tourist Site"
     },
     {
         "id": "4",
@@ -45,6 +48,72 @@
         "entrance": "₱75.00",
         "address": "HXPG+564, Sta. Lucia St, Intramuros, Manila, 1002 Metro Manila",
         "description": "Baluarte de San Diego is the oldest structure in Intramuros and was originally built as a watchtower in 1587. It was declared a National Cultural Treasure in 2014.",
-        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM"
+        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM",
+        "category": "Tourist Site"
+    },
+    {
+        "id": "5",
+        "name": "Barbara's Heritage Restaurant",
+        "imageUrl": "https://static.wixstatic.com/media/971500_1283e70f21d648debd0480e2816a42f8~mv2.jpg/v1/fill/w_980,h_552,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/971500_1283e70f21d648debd0480e2816a42f8~mv2.jpg",
+        "latitude": 14.5892166,
+        "longitude": 120.9739268,
+        "status": "Open",
+        "entrance": "₱300.00",
+        "address": "Plaza San Luis Complex, Intramuros, Manila",
+        "description": "Barbara's Heritage Restaurant offers traditional Filipino cuisine in a historical setting, combining the charm of Intramuros with authentic tastes from the past. It is a great place to enjoy lunch or dinner while soaking in the cultural ambiance.",
+        "openingHours": "Mon-Sun: 10:00 AM - 10:00 PM",
+        "category": "Restaurant"
+    },
+    {
+        "id": "6",
+        "name": "San Agustin Church",
+        "imageUrl": "https://juancarlo.ph/wp-content/uploads/2024/04/Rectangle-111-min.jpg",
+        "latitude": 14.589716,
+        "longitude": 120.976538,
+        "status": "Open",
+        "entrance": "₱50.00",
+        "address": "General Luna Street, Intramuros, Manila",
+        "description": "A UNESCO World Heritage Site, San Agustin Church is the oldest stone church in the Philippines and one of the best examples of Baroque architecture in Southeast Asia. It is an active place of worship and a popular tourist attraction.",
+        "openingHours": "Mon-Sun: 7:00 AM - 6:00 PM",
+        "category": "Church"
+    },
+    {
+        "id": "7",
+        "name": "Manila Cathedral",
+        "imageUrl": "https://catholicshrinebasilica.com/wp-content/uploads/The-Manila-Cathedral-958x500.webp",
+        "latitude": 14.591068,
+        "longitude": 120.976377,
+        "status": "Open",
+        "entrance": "Free",
+        "address": "Cabildo Street, Intramuros, Manila",
+        "description": "The Manila Cathedral, officially the Cathedral-Basilica of the Immaculate Conception, is the seat of the Archbishop of Manila. Its long history includes being destroyed and rebuilt several times, and it stands as a symbol of Filipino resilience and religious heritage.",
+        "openingHours": "Mon-Sun: 7:00 AM - 6:00 PM",
+        "category": "Church"
+    },
+    {
+        "id": "8",
+        "name": "University of Santo Tomas (UST)",
+        "imageUrl": "https://www.bienvenidotours.com/uploads/1/3/5/3/13538651/8570362_orig.jpg?631",
+        "latitude": 14.595421,
+        "longitude": 120.989808,
+        "status": "Open",
+        "entrance": "Free",
+        "address": "España Blvd, Sampaloc, Manila",
+        "description": "The University of Santo Tomas is the oldest existing university in Asia, founded in 1611. It has a rich cultural and academic history, and its sprawling campus is home to many iconic landmarks, including the UST Main Building, a UNESCO World Heritage Site.",
+        "openingHours": "Mon-Fri: 8:00 AM - 5:00 PM",
+        "category": "School"
+    },
+    {
+        "id": "9",
+        "name": "Mapúa University",
+        "imageUrl": "https://the-post-assets.sgp1.digitaloceanspaces.com/2023/02/MAPUA-U_thumbnail.png",
+        "latitude": 14.589526,
+        "longitude": 120.979299,
+        "status": "Open",
+        "entrance": "Free",
+        "address": "Muralla St, Intramuros, Manila",
+        "description": "Mapúa University, a prestigious institution in the field of engineering and architecture, offers a rigorous education in various technical fields. It is one of the most renowned universities in the country, with a long history of academic excellence.",
+        "openingHours": "Mon-Fri: 7:00 AM - 5:00 PM",
+        "category": "School"
     }
 ]

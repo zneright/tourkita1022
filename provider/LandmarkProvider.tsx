@@ -7,30 +7,49 @@ const LandmarkContext = createContext({});
 export default function LandmarkProvider({ children }: PropsWithChildren)  {
     const [selectedLandmark, setSelectedLandmark] = useState();
     const [direction, setDirection] = useState();
+    const [showDirection, setShowDirection] = useState(false);
+    const [loadingDirection, setLoadingDirection] = useState(false);
     
-    useEffect(() => {
-        const fetchDirection = async () => {
+   
+    const loadDirection = async () => {
+        if(!selectedLandmark) return
+        setLoadingDirection(true)
+
+        try{
             const userLocation = await Location.getCurrentPositionAsync();
-      
-            const newDirection = await getDirections([userLocation.coords.longitude, userLocation.coords.latitude],
-                [selectedLandmark.longitude, selectedLandmark.latitude]);
-
+            const newDirection = await getDirections(
+                [userLocation.coords.longitude, userLocation.coords.latitude],
+                [selectedLandmark.longitude, selectedLandmark.latitude]
+            );
             setDirection(newDirection);
-
+            setShowDirection(true)
+        }catch(err){
+            console.error("Error fetching directions: ", err);
         }
-        if(selectedLandmark) {
-            fetchDirection();
+        finally{
+            setLoadingDirection(false);
         }
- }, [selectedLandmark]);
+    }
 
     console.log("Selected: ", selectedLandmark);
+
+    
+
+
 return (
     <LandmarkContext.Provider value={{selectedLandmark, 
      setSelectedLandmark,
      direction, 
      directionCoordinates : direction?.routes?.[0]?.geometry.coordinates,
      duration: direction?.routes?.[0]?.duration,
-     distance: direction?.routes?.[0]?.distance,}}>
+     distance: direction?.routes?.[0]?.distance,
+     showDirection, 
+     setShowDirection, 
+     loadingDirection,
+     loadDirection, 
+  
+     }}>
+        
         {children}
     </LandmarkContext.Provider>
 

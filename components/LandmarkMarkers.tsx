@@ -19,17 +19,9 @@ export default function LandmarkMarkers(){
     return(
         <ShapeSource id="landmarks" shape={featureCollection(points)}
             onPress={onPointPress}>
-
-            <SymbolLayer id="cluster-count"
-                style={{
-                    textField: ['get', 'point_count'],
-                    textSize: 18,
-                    textPitchAlignment: 'map',
-                }} />
-
-            
+        
             <SymbolLayer id="landmark-icons"
-                filter={['!', ['has', 'point_count']]}
+              
                 style={{
                     iconImage: 'pin',
                     iconSize: 0.7,

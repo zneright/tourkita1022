@@ -29,7 +29,6 @@ const AppNavigator = () => {
         <GestureHandlerRootView>
             <LandmarkProvider>
                 <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
-
                     <Stack.Screen name="Splash" component={SplashScreen} />
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="SignUp" component={SignUpScreen} />
