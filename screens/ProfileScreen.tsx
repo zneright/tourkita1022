@@ -11,7 +11,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../services/types';
+import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
 
