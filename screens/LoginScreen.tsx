@@ -38,8 +38,7 @@ const LoginScreen = () => {
             const user = userCredential.user;
 
             if (user.emailVerified) {
-                navigation.reset({ index: 0, routes: [{ name: 'Maps' }] }); // or MainTabs
-            } else {
+                navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
                 Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
             }
         } catch (error: any) {

@@ -45,7 +45,6 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
         return () => clearInterval(interval);
     }, []);
 
-    // Timeout for 5 minutes
     useEffect(() => {
         timeoutRef.current = setTimeout(async () => {
             const user = auth.currentUser;
@@ -84,7 +83,6 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
         }
     }, [isEmailVerified]);
 
-    // Handle hardware back button
     useFocusEffect(() => {
         const onBackPress = () => {
             Alert.alert(

@@ -68,7 +68,7 @@ export default function ProfileScreen() {
                         const auth = getAuth();
                         try {
                             await signOut(auth);
-                            navigation.replace('Login'); // Navigate to Login screen and clear history
+                            navigation.replace('Login');
                         } catch (error) {
                             console.error('Logout error: ', error);
                             Alert.alert('Error', 'An error occurred while logging out.');

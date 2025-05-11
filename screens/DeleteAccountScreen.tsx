@@ -14,7 +14,7 @@ export default function DeleteAccountScreen() {
     const [password, setPassword] = useState<string>('');
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
     const [isPasswordValid, setIsPasswordValid] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null); // For handling error message
+    const [error, setError] = useState<string | null>(null);
     const navigation = useNavigation<NavigationProp>();
 
     const handleDeleteAccount = async () => {
@@ -24,9 +24,9 @@ export default function DeleteAccountScreen() {
         if (currentUser) {
             try {
                 setIsDeleting(true);
-                setError(null); // Reset the error
+                setError(null);
 
-                // Check if password is provided
+                // Check if tama ang pass
                 if (!password) {
                     setIsPasswordValid(false);
                     setIsDeleting(false);
@@ -44,11 +44,11 @@ export default function DeleteAccountScreen() {
                 if (userSnap.exists()) {
                     const userData = userSnap.data();
 
-                    // Move data to 'archived' collection
+                    // Move data to 'archived'
                     const archivedRef = collection(db, 'archived');
                     await setDoc(doc(archivedRef, currentUser.uid), userData);
 
-                    // Delete user data from 'users' collection and Firebase Auth
+                    // Delete data from 'users' collection and Firebase Auth
                     await deleteUser(currentUser);
 
                     Alert.alert('Account Deleted', 'Your account has been deleted successfully.');
@@ -75,7 +75,6 @@ export default function DeleteAccountScreen() {
                 Are you sure you want to delete your account? Please enter your password to proceed.
             </Text>
 
-            {/* Password Input */}
             <TextInput
                 style={[styles.input, !isPasswordValid && styles.inputError]}
                 placeholder="Enter your password"
@@ -92,7 +91,7 @@ export default function DeleteAccountScreen() {
                 <Button
                     title="Delete Account"
                     onPress={handleDeleteAccount}
-                    color="#FF0000" // Red button color
+                    color="#FF0000"
                     disabled={isDeleting}
                 />
             </View>
