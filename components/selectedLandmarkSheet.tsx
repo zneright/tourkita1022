@@ -11,23 +11,23 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 
 export default function SelectedLandmarkSheet() {
-    const {selectedLandmark, duration, distance, loadingDirection, loadDirection, } = useLandmark();
+    const { selectedLandmark, duration, distance, loadingDirection, loadDirection, } = useLandmark();
     const bottomSheetRef = useRef<BottomSheet>(null);
 
     useEffect(() => {
         console.log("Selected Landmark:", selectedLandmark);
         if (selectedLandmark) {
-          
+
             bottomSheetRef.current?.expand();
         }
     }, [selectedLandmark, duration, distance]);
 
- 
-   const handleGetDirection = () =>{
-    loadDirection();
-   }
 
-       
+    const handleGetDirection = () => {
+        loadDirection();
+    }
+
+
 
     return (
         <BottomSheet
@@ -40,18 +40,18 @@ export default function SelectedLandmarkSheet() {
                             color: "#6B5E5E",
                         }}>AR Camera Supported</Text>
 
-                        
+
                         <View style={{ flexDirection: "row", gap: 5, justifyContent: "flex-end", flex: 1 }}>
 
                             <View style={{ flexDirection: "row", gap: 5 }}>
                                 <FontAwesome5 name="route" size={15} color="black" />
-                                {loadingDirection ? (<ActivityIndicator color="white" size="small" />) : ( <Text >  {(duration / 1000).toFixed(2)} km</Text>)}
+                                {loadingDirection ? (<ActivityIndicator color="white" size="small" />) : (<Text >  {(duration / 1000).toFixed(2)} km</Text>)}
                             </View>
                             <View style={{ flexDirection: "row", gap: 5 }}>
                                 <Entypo name="back-in-time" size={18} color="black" />
-                                {loadingDirection ? (<ActivityIndicator color="white" size="small" />) : (<Text>{(distance/ 60).toFixed()} min</Text>)}
+                                {loadingDirection ? (<ActivityIndicator color="white" size="small" />) : (<Text>{(distance / 60).toFixed()} min</Text>)}
                             </View>
-                    </View>
+                        </View>
 
 
                     </View>
@@ -107,28 +107,28 @@ export default function SelectedLandmarkSheet() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={handleGetDirection} disabled={loadingDirection}> 
+                    <TouchableOpacity onPress={handleGetDirection} disabled={loadingDirection}>
                         <View style={{
-                            width:"75%",
-                            height:50,
+                            width: "75%",
+                            height: 50,
                             backgroundColor: "#6B5E5E",
                             borderRadius: 15,
-                            alignSelf:"center",
-                            alignItems:"center",
-                            justifyContent:"center",
-                            flexDirection:"row",
+                            alignSelf: "center",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexDirection: "row",
                             gap: 10
                         }}>
                             {loadingDirection ? (
-                                <ActivityIndicator color = "white" size="small" /> ) :(
-                                <> 
+                                <ActivityIndicator color="white" size="small" />) : (
+                                <>
                                     <Entypo name="direction" size={24} color="white" />
                                     <Text style={{ color: "white", fontSize: 20, fontWeight: "bold" }}>Get Direction</Text>
                                 </>
                             )}
                         </View>
                     </TouchableOpacity>
-               
+
                 </View>
 
             </BottomSheetView>

@@ -3,7 +3,19 @@ export type RootStackParamList = {
     SignUp: undefined;
     Terms: undefined;
     ForgotPassword: undefined;
-    EmailVerification: undefined;
+    EmailVerification: {
+        userData: {
+            uid: string;
+            firstName: string;
+            middleInitial: string;
+            lastName: string;
+            gender: string;
+            userType: string;
+            age: number;
+            contactNumber: string;
+            email: string;
+        };
+    };
     Support: undefined;
     MainTabs: undefined;
     Maps: undefined;
@@ -16,4 +28,5 @@ export type RootStackParamList = {
     ChangePassword: undefined;
     Feedback: undefined;
     Splash: undefined;
+    DeleteAccount: undefined;
 };

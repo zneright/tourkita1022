@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     SafeAreaView,
     View,
@@ -10,15 +10,50 @@ import {
     Dimensions,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
     const navigation = useNavigation<NavigationProp>();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Missing Fields', 'Please enter both email and password.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            if (user.emailVerified) {
+                navigation.reset({ index: 0, routes: [{ name: 'Maps' }] }); // or MainTabs
+            } else {
+                Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
+            }
+        } catch (error: any) {
+            let message = 'Login failed. Please try again.';
+            if (error.code === 'auth/user-not-found') message = 'No user found with that email.';
+            else if (error.code === 'auth/wrong-password') message = 'Incorrect password.';
+            else if (error.code === 'auth/invalid-email') message = 'Invalid email format.';
+
+            Alert.alert('Login Error', message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
@@ -30,6 +65,7 @@ const LoginScreen = () => {
                     resizeMode="contain"
                     style={styles.logo}
                 />
+
                 <Text style={styles.agreementText}>
                     By signing in you are agreeing to our{' '}
                     <Text style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Terms and Privacy Policy</Text>
@@ -42,15 +78,32 @@ const LoginScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <TextInput style={styles.input} placeholder="Enter email" keyboardType="email-address" />
-                <TextInput style={styles.input} placeholder="Enter password" secureTextEntry />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                />
 
                 <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotPasswordContainer}>
                     <Text style={styles.forgotPassword}>Forget password?</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Maps')}>
-                    <Text style={styles.loginText}>Login</Text>
+                <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={handleLogin}
+                    disabled={loading}
+                >
+                    <Text style={styles.loginText}>{loading ? 'Logging in...' : 'Login'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.navigate('MainTabs')}>

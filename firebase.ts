@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, signOut } from "firebase/auth"; // Import signOut function
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -15,5 +15,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);    
+export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Add signOut function
+export const logout = () => {
+    signOut(auth)
+        .then(() => {
+            console.log("User signed out successfully.");
+        })
+        .catch((error) => {
+            console.error("Error signing out: ", error.message);
+        });
+};

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { RootStackParamList } from '../Navigation/types';
 import {
     SafeAreaView,
     View,
@@ -14,7 +17,6 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
-import { RootStackParamList } from '../Navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,13 +33,66 @@ const SignUpScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [email, setEmail] = useState("");
     const [isChecked, setIsChecked] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!isChecked) {
             Alert.alert("Please agree to the terms and privacy policy.");
             return;
         }
-        navigation.navigate("EmailVerification");
+
+        if (password !== confirmPassword) {
+            Alert.alert("Passwords do not match.");
+            return;
+        }
+
+        if (!age || isNaN(Number(age)) || Number(age) <= 0) {
+            Alert.alert("Please enter a valid age.");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert("Please enter a valid email address.");
+            return;
+        }
+
+        const contactRegex = /^09\d{9}$/;
+        if (!contactRegex.test(contactNumber)) {
+            Alert.alert("Please enter a valid 11-digit PH contact number starting with 09.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Send email verification
+            await sendEmailVerification(user);
+
+            Alert.alert("Check your email for the verification link.");
+
+            // Pass the user data to the EmailVerification screen
+            navigation.navigate("EmailVerification", {
+                userData: {
+                    uid: user.uid,
+                    firstName,
+                    middleInitial,
+                    lastName,
+                    gender,
+                    userType,
+                    age: parseInt(age),
+                    contactNumber,
+                    email,
+                },
+            });
+        } catch (error: any) {
+            Alert.alert("Error", error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -65,7 +120,7 @@ const SignUpScreen = () => {
                             <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
                         </View>
                         <View style={styles.column}>
-                            <Text style={styles.label}>M.I.</Text>
+                            <Text style={styles.label}>M.I.(Optional)</Text>
                             <TextInput style={styles.input} value={middleInitial} onChangeText={setMiddleInitial} />
                         </View>
                     </View>
@@ -147,21 +202,23 @@ const SignUpScreen = () => {
                             onValueChange={setIsChecked}
                             color={isChecked ? "#603F26" : undefined}
                         />
-                        <Text style={styles.termsText}> Term and privacy policy</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
+                            <Text style={styles.termsText}> Term and privacy policy</Text>
+                        </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={styles.button} onPress={handleNext}>
-                        <Text style={styles.buttonText}>Next</Text>
+                    <TouchableOpacity
+                        style={[styles.button, isSubmitting && { backgroundColor: "#A5A5A5" }]}
+                        onPress={handleNext}
+                        disabled={isSubmitting}
+                    >
+                        <Text style={styles.buttonText}>{isSubmitting ? "Processing..." : "Next"}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 };
-
-export default SignUpScreen;
-
-
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: "#F5F5F5" },
@@ -202,47 +259,44 @@ const styles = StyleSheet.create({
         marginLeft: 6,
     },
     input: {
+        backgroundColor: "#F5F5F5",
         height: 40,
-        backgroundColor: "#FFFFFF",
-        borderColor: "#603F26",
-        borderRadius: 15,
-        borderWidth: 1,
-        paddingHorizontal: 10,
+        borderRadius: 5,
+        paddingLeft: 10,
         marginBottom: 10,
-    },
-    pickerContainer: {
-        borderWidth: 1,
-        borderColor: "#603F26",
-        borderRadius: 15,
-        marginBottom: 10,
-        overflow: "hidden",
     },
     row: {
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: 10,
     },
-    column: { flex: 1 },
+    column: {
+        width: "48%",
+    },
+    pickerContainer: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 5,
+    },
     checkboxContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: 10,
+        marginBottom: 20,
     },
     termsText: {
-        marginLeft: 8,
         color: "#603F26",
+        textDecorationLine: "underline",
     },
     button: {
-        width: "100%",
-        height: 40,
         backgroundColor: "#603F26",
-        borderRadius: 10,
+        borderRadius: 5,
+        paddingVertical: 12,
         alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
     },
     buttonText: {
-        color: "#FFFFFF",
+        color: "#fff",
         fontSize: 16,
+        fontWeight: "600",
     },
 });
+
+export default SignUpScreen;

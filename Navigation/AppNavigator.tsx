@@ -21,7 +21,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import SplashScreen from "../screens/SplashScreen";
-
+import DeleteAccountScreen from '../screens/DeleteAccountScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
@@ -45,6 +45,8 @@ const AppNavigator = () => {
                     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
                     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
                     <Stack.Screen name="Feedback" component={FeedbackScreen} />
+                    <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+
                 </Stack.Navigator>
                 <SelectedLandmarkSheet />
             </LandmarkProvider>
