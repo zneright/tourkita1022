@@ -47,7 +47,6 @@ const NotificationScreen = () => {
                     };
                 });
 
-                // Sort by timestamp (latest first)
                 const sortedData = data.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
                 setNotifications(sortedData);
             } catch (err) {

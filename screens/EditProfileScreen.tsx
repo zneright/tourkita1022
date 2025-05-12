@@ -8,21 +8,41 @@ import {
     TouchableOpacity,
     StyleSheet,
     Dimensions,
+    Modal,
+    Alert,
+    ActivityIndicator,
 } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
-import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+    getAuth,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+} from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../Navigation/types";
 
 const { width } = Dimensions.get("window");
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 const EditProfileScreen = () => {
-    const [name, setName] = useState("");
-    const [contactNumber, setContactNumber] = useState("");
-    const [age, setAge] = useState("");
-    const [userType, setUserType] = useState("");
-    const [gender, setGender] = useState("");
-    const [email, setEmail] = useState("");
+    const [formData, setFormData] = useState({
+        firstName: "",
+        middleInitial: "",
+        lastName: "",
+        contactNumber: "",
+        age: "",
+        userType: "",
+        gender: "",
+    });
+    const [loading, setLoading] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [password, setPassword] = useState("");
+
+    const navigation = useNavigation<NavigationProp>();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -36,14 +56,15 @@ const EditProfileScreen = () => {
 
                 if (userSnap.exists()) {
                     const data = userSnap.data();
-                    const fullName = `${data.firstName} ${data.middleInitial || ""} ${data.lastName}`.trim();
-
-                    setName(fullName);
-                    setContactNumber(data.contactNumber || "");
-                    setAge(data.age?.toString() || "");
-                    setUserType(data.userType || "");
-                    setGender(data.gender || "");
-                    setEmail(data.email || "");
+                    setFormData({
+                        firstName: data.firstName || "",
+                        middleInitial: data.middleInitial || "",
+                        lastName: data.lastName || "",
+                        contactNumber: data.contactNumber || "",
+                        age: data.age?.toString() || "",
+                        userType: data.userType || "",
+                        gender: data.gender || "",
+                    });
                 }
             } catch (error) {
                 console.error("Failed to fetch user data:", error);
@@ -53,8 +74,75 @@ const EditProfileScreen = () => {
         fetchUserData();
     }, []);
 
-    const handleInputChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
-        setter(value);
+    const handleInputChange = (field: string, value: string) => {
+        setFormData(prevState => ({ ...prevState, [field]: value }));
+    };
+
+    const promptPasswordAndSave = () => {
+        setModalVisible(true);
+    };
+
+    const handlePasswordChange = (text: string) => {
+        setPassword(text);
+    };
+
+    const reauthenticateAndSave = async () => {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+
+        if (currentUser?.email) {
+            const credential = EmailAuthProvider.credential(currentUser.email, password);
+
+            try {
+                await reauthenticateWithCredential(currentUser, credential);
+                Alert.alert("Confirm Changes", "Are you sure you want to save changes?", [
+                    { text: "No", style: "cancel" },
+                    { text: "Yes", onPress: saveChanges },
+                ]);
+            } catch (error) {
+                Alert.alert("Authentication Failed", "Incorrect password.");
+            }
+        }
+    };
+
+    const saveChanges = async () => {
+        const { firstName, lastName, contactNumber, age, userType, gender } = formData;
+
+        if (!firstName || !lastName || !contactNumber || !age || !userType || !gender) {
+            Alert.alert("Validation Error", "Please fill out all fields before saving.");
+            return;
+        }
+
+        if (isNaN(Number(age))) {
+            Alert.alert("Age Error", "Please enter a valid age.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const auth = getAuth();
+            const currentUser = auth.currentUser;
+            if (!currentUser) return;
+
+            const userRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userRef, {
+                firstName,
+                middleInitial: formData.middleInitial,
+                lastName,
+                contactNumber,
+                age: parseInt(age),
+                userType,
+                gender,
+            });
+
+            Alert.alert("Success", "Profile updated successfully.");
+            navigation.navigate("ViewProfile");
+        } catch (error) {
+            console.error("Failed to save changes:", error);
+            Alert.alert("Error", "Failed to save changes.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -62,32 +150,84 @@ const EditProfileScreen = () => {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.title}>Edit Profile</Text>
 
-                <FormInput label="Name" value={name} onChange={handleInputChange(setName)} placeholder="Full Name" />
-                <FormInput label="Contact Number" value={contactNumber} onChange={handleInputChange(setContactNumber)} placeholder="Enter contact" />
-                <FormInput label="Age" value={age} onChange={handleInputChange(setAge)} placeholder="Enter age" />
+                <FormInput label="First Name" value={formData.firstName} onChange={(value) => handleInputChange('firstName', value)} placeholder="Enter First Name" />
+                <FormInput label="Middle Initial" value={formData.middleInitial} onChange={(value) => handleInputChange('middleInitial', value)} placeholder="M" />
+                <FormInput label="Last Name" value={formData.lastName} onChange={(value) => handleInputChange('lastName', value)} placeholder="Enter Last Name" />
+                <FormInput label="Contact Number" value={formData.contactNumber} onChange={(value) => handleInputChange('contactNumber', value)} placeholder="Enter Contact" />
+                <FormInput label="Age" value={formData.age} onChange={(value) => handleInputChange('age', value)} placeholder="Enter Age" />
 
-                <FormPicker label="User Type" value={userType} onValueChange={setUserType} items={[
-                    { label: "Student", value: "student" },
-                    { label: "Tourist", value: "tourist" },
-                    { label: "Local", value: "local" },
-                ]} />
-                <FormPicker label="Gender" value={gender} onValueChange={setGender} items={[
-                    { label: "Male", value: "Male" },
-                    { label: "Female", value: "Female" },
-                    { label: "Other", value: "Other" },
-                ]} />
+                <FormPicker
+                    label="User Type"
+                    value={formData.userType}
+                    onValueChange={(value) => handleInputChange('userType', value)}
+                    items={[
+                        { label: "Student", value: "student" },
+                        { label: "Tourist", value: "tourist" },
+                        { label: "Local", value: "local" },
+                    ]}
+                />
+                <FormPicker
+                    label="Gender"
+                    value={formData.gender}
+                    onValueChange={(value) => handleInputChange('gender', value)}
+                    items={[
+                        { label: "Male", value: "Male" },
+                        { label: "Female", value: "Female" },
+                        { label: "Other", value: "Other" },
+                    ]}
+                />
 
-                <FormInput label="Email" value={email} onChange={handleInputChange(setEmail)} placeholder="Email" />
-
-                <TouchableOpacity style={styles.saveButton}>
-                    <Text style={styles.saveButtonText}>Save</Text>
+                <TouchableOpacity style={styles.saveButton} onPress={promptPasswordAndSave} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save</Text>}
                 </TouchableOpacity>
             </ScrollView>
+
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Confirm Password</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Enter your password"
+                            value={password}
+                            onChangeText={handlePasswordChange}
+                            secureTextEntry
+                        />
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => {
+                                reauthenticateAndSave();
+                                setModalVisible(false);
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>Confirm</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: "#ccc" }]}
+                            onPress={() => setModalVisible(false)}
+                        >
+                            <Text style={[styles.modalButtonText, { color: "#000" }]}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
 
-const FormInput = ({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (text: string) => void, placeholder: string }) => (
+type FormInputProps = {
+    label: string;
+    value: string;
+    onChange: (text: string) => void;
+    placeholder: string;
+};
+
+const FormInput: React.FC<FormInputProps> = ({ label, value, onChange, placeholder }) => (
     <View style={styles.formGroup}>
         <Text style={styles.label}>{label}</Text>
         <TextInput
@@ -96,12 +236,18 @@ const FormInput = ({ label, value, onChange, placeholder }: { label: string, val
             placeholderTextColor="#A5A5A5"
             value={value}
             onChangeText={onChange}
-            keyboardType={label === "Age" ? "numeric" : "default"}
         />
     </View>
 );
 
-const FormPicker = ({ label, value, onValueChange, items }: { label: string, value: string, onValueChange: (value: string) => void, items: { label: string, value: string }[] }) => (
+type FormPickerProps = {
+    label: string;
+    value: string;
+    onValueChange: (value: string) => void;
+    items: { label: string; value: string }[];
+};
+
+const FormPicker: React.FC<FormPickerProps> = ({ label, value, onValueChange, items }) => (
     <View style={styles.formGroup}>
         <Text style={styles.label}>{label}</Text>
         <RNPickerSelect
@@ -109,8 +255,8 @@ const FormPicker = ({ label, value, onValueChange, items }: { label: string, val
             value={value}
             items={items}
             style={{
-                inputIOS: { ...styles.pickerInput, width: width - 40 },
-                inputAndroid: { ...styles.pickerInput, width: width - 40 },
+                inputIOS: styles.pickerInput,
+                inputAndroid: styles.pickerInput,
             }}
             useNativeAndroidPickerStyle={false}
         />
@@ -127,37 +273,70 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginVertical: 20,
     },
-    formGroup: { marginBottom: 20 },
-    label: { color: "#493628", fontSize: 16, marginBottom: 8 },
+    formGroup: { marginBottom: 15 },
+    label: { fontSize: 16, fontWeight: "600", color: "#493628", marginBottom: 5 },
     input: {
-        color: "#000000",
-        fontSize: 16,
+        height: 45,
         borderWidth: 1,
-        borderColor: "#603F26",
+        borderColor: "#ccc",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 10,
+        backgroundColor: "#fff",
+        color: "#000",
     },
     pickerInput: {
-        fontSize: 16,
-        color: "#000000",
-        paddingHorizontal: 15,
-        paddingVertical: 12,
+        height: 45,
         borderWidth: 1,
-        borderColor: "#603F26",
+        borderColor: "#ccc",
         borderRadius: 10,
-        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 10,
+        backgroundColor: "#fff",
+        color: "#000",
     },
     saveButton: {
-        backgroundColor: "#D6C0B3",
-        borderRadius: 12,
-        paddingVertical: 14,
-        marginTop: 30,
-        marginHorizontal: 40,
+        backgroundColor: "#493628",
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 20,
+    },
+    saveButtonText: { fontSize: 18, color: "#fff" },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        width: width - 40,
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        padding: 20,
         alignItems: "center",
     },
-    saveButtonText: { color: "#493628", fontSize: 18, fontWeight: "bold" },
+    modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 15 },
+    modalInput: {
+        width: "100%",
+        height: 45,
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        marginBottom: 15,
+    },
+    modalButton: {
+        width: "100%",
+        backgroundColor: "#493628",
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    modalButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+    },
 });
 
 export default EditProfileScreen;
+

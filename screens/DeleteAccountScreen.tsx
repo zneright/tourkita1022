@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { SafeAreaView, Text, StyleSheet, Button, Alert, View, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+    SafeAreaView,
+    Text,
+    StyleSheet,
+    Alert,
+    View,
+    TextInput,
+    ActivityIndicator,
+    TouchableOpacity,
+    BackHandler
+} from 'react-native';
 import { getAuth, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -7,14 +17,16 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
 import { FirebaseError } from 'firebase/app';
+import { useFocusEffect } from '@react-navigation/native';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function DeleteAccountScreen() {
-    const [password, setPassword] = useState<string>('');
-    const [isDeleting, setIsDeleting] = useState<boolean>(false);
-    const [isPasswordValid, setIsPasswordValid] = useState<boolean>(true);
+    const [password, setPassword] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isPasswordValid, setIsPasswordValid] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
     const navigation = useNavigation<NavigationProp>();
 
     const handleDeleteAccount = async () => {
@@ -26,53 +38,64 @@ export default function DeleteAccountScreen() {
                 setIsDeleting(true);
                 setError(null);
 
-                // Check if tama ang pass
                 if (!password) {
                     setIsPasswordValid(false);
                     setIsDeleting(false);
                     return;
                 }
 
-                // Reauthenticate the user with the entered password
                 const credential = EmailAuthProvider.credential(currentUser.email!, password);
                 await reauthenticateWithCredential(currentUser, credential);
 
-                // Get user data
                 const userRef = doc(db, 'users', currentUser.uid);
                 const userSnap = await getDoc(userRef);
 
                 if (userSnap.exists()) {
                     const userData = userSnap.data();
 
-                    // Move data to 'archived'
                     const archivedRef = collection(db, 'archived');
                     await setDoc(doc(archivedRef, currentUser.uid), userData);
 
-                    // Delete data from 'users' collection and Firebase Auth
                     await deleteUser(currentUser);
 
                     Alert.alert('Account Deleted', 'Your account has been deleted successfully.');
                     navigation.replace('Login');
                 }
             } catch (error: any) {
-                console.error('Error deleting account:', error);
                 setIsDeleting(false);
-
                 if ((error as FirebaseError).code === 'auth/requires-recent-login') {
                     setError('Please re-enter your password to proceed.');
                 } else {
                     setError('Failed to delete account. Please check your password and try again.');
                 }
             }
-
         }
     };
+
+    const handleCancel = () => {
+        navigation.goBack();
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                navigation.goBack();
+                return true;
+            };
+
+            BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            return () => {
+                BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+            };
+        }, [navigation])
+    );
 
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Delete Account</Text>
             <Text style={styles.instructions}>
-                Are you sure you want to delete your account? Please enter your password to proceed.
+                Are you sure you want to delete your account? Enter your password to continue.
             </Text>
 
             <TextInput
@@ -87,13 +110,22 @@ export default function DeleteAccountScreen() {
 
             {isDeleting && <ActivityIndicator size="large" color="#FF0000" style={styles.loader} />}
 
-            <View style={styles.buttonContainer}>
-                <Button
-                    title="Delete Account"
-                    onPress={handleDeleteAccount}
-                    color="#FF0000"
+            <View style={styles.buttonRow}>
+                <TouchableOpacity
+                    style={[styles.button, styles.cancelButton]}
+                    onPress={handleCancel}
                     disabled={isDeleting}
-                />
+                >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.button, styles.deleteButton]}
+                    onPress={handleDeleteAccount}
+                    disabled={isDeleting}
+                >
+                    <Text style={styles.deleteText}>Delete</Text>
+                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
@@ -102,15 +134,15 @@ export default function DeleteAccountScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        padding: 30,
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
         backgroundColor: '#F2F2F2',
     },
     title: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: 'bold',
-        marginBottom: 20,
+        textAlign: 'center',
+        marginBottom: 16,
         color: '#493628',
     },
     instructions: {
@@ -119,26 +151,51 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         color: '#493628',
     },
-    buttonContainer: {
-        width: '100%',
-        marginTop: 20,
-    },
-    loader: {
-        marginVertical: 20,
-    },
     input: {
-        width: '100%',
-        padding: 12,
-        marginBottom: 20,
-        borderWidth: 1,
+        backgroundColor: '#FFF',
         borderColor: '#493628',
-        borderRadius: 5,
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 10,
     },
     inputError: {
         borderColor: '#FF0000',
     },
     errorText: {
         color: '#FF0000',
-        fontSize: 12,
+        fontSize: 13,
+        marginBottom: 8,
+    },
+    loader: {
+        marginVertical: 16,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+    },
+    button: {
+        flex: 1,
+        padding: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginHorizontal: 5,
+    },
+    deleteButton: {
+        backgroundColor: '#FF0000',
+    },
+    cancelButton: {
+        backgroundColor: '#D9D9D9',
+    },
+    deleteText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    cancelText: {
+        color: '#493628',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

@@ -1,8 +1,24 @@
-import React from 'react';
-import { ScrollView, Text, StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ScrollView, Text, StyleSheet, View, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 const TermsScreen = () => {
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // Go back to the previous screen when the back button is pressed
+            navigation.goBack();
+            return true; // Prevent the default behavior (exit app)
+        });
+
+        // Clean up the event listener on component unmount
+        return () => {
+            backHandler.remove();
+        };
+    }, [navigation]);
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll}>

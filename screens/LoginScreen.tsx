@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import Icon from 'react-native-vector-icons/Feather';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -25,6 +26,7 @@ const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -39,7 +41,6 @@ const LoginScreen = () => {
 
             if (user.emailVerified) {
                 navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
-                Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
             }
         } catch (error: any) {
             let message = 'Login failed. Please try again.';
@@ -67,7 +68,9 @@ const LoginScreen = () => {
 
                 <Text style={styles.agreementText}>
                     By signing in you are agreeing to our{' '}
-                    <Text style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Terms and Privacy Policy</Text>
+                    <Text style={styles.linkText} onPress={() => navigation.navigate('Terms')}>
+                        Terms and Privacy Policy
+                    </Text>
                 </Text>
 
                 <View style={styles.tabContainer}>
@@ -81,17 +84,21 @@ const LoginScreen = () => {
                     style={styles.input}
                     placeholder="Enter email"
                     keyboardType="email-address"
-                    autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
                 />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter password"
-                    secureTextEntry
-                    value={password}
-                    onChangeText={setPassword}
-                />
+                <View style={styles.passwordContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Enter password"
+                        secureTextEntry={!showPassword}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                        <Icon name={showPassword ? 'eye' : 'eye-off'} size={20} color="#603F26" />
+                    </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotPasswordContainer}>
                     <Text style={styles.forgotPassword}>Forget password?</Text>
@@ -130,9 +137,11 @@ const styles = StyleSheet.create({
     agreementText: { color: '#6B5E5E', fontSize: 13, textAlign: 'center', width: width * 0.8 },
     linkText: { fontWeight: 'bold', color: '#603F26' },
     tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
-    activeTab: { color: '#603F26', fontSize: 20, marginTop: 10 },
-    inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26, marginTop: 10 },
+    activeTab: { color: '#603F26', fontSize: 20 },
+    inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26 },
     input: { height: 45, backgroundColor: '#FFFFFF', borderColor: '#603F26', borderRadius: 15, borderWidth: 1, paddingHorizontal: 15, width: width * 0.8, marginBottom: 10 },
+    passwordContainer: { flexDirection: 'row', width: width * 0.8, marginBottom: 10, position: 'relative' },
+    eyeIcon: { position: 'absolute', right: 10, top: 12 },
     forgotPasswordContainer: { alignSelf: 'flex-end', marginRight: 48 },
     forgotPassword: { color: '#603F26', fontSize: 10 },
     loginButton: { alignItems: 'center', backgroundColor: '#603F26', borderRadius: 5, paddingVertical: 11, width: width * 0.8, marginVertical: 10, elevation: 4 },

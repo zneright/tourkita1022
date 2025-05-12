@@ -5,7 +5,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Image,
     Alert,
     BackHandler,
 } from 'react-native';
@@ -84,11 +83,14 @@ export default function ProfileScreen() {
         navigation.navigate('DeleteAccount');
     };
 
+    const handleUpdateEmail = () => {
+        navigation.navigate('UpdateEmail');
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
             <View style={styles.profileSection}>
-                <Image source={{ uri: DEFAULT_AVATAR }} style={styles.avatar} />
                 <Text style={styles.username}>{name}</Text>
             </View>
 
@@ -102,6 +104,9 @@ export default function ProfileScreen() {
                 }, {
                     title: 'Terms',
                     onPress: () => navigation.navigate('Terms')
+                }, {
+                    title: 'Update Email',
+                    onPress: handleUpdateEmail
                 }].map((item, idx) => (
                     <TouchableOpacity key={idx} style={styles.menuItem} onPress={item.onPress}>
                         <Text style={styles.menuText}>{item.title}</Text>
@@ -109,11 +114,11 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 ))}
 
-                <TouchableOpacity style={[styles.menuItem, styles.dangerItem]} onPress={handleDeleteAccount}>
+                <TouchableOpacity style={[styles.menuItem]} onPress={handleDeleteAccount}>
                     <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.menuItem, styles.dangerItem]} onPress={handleLogOut}>
+                <TouchableOpacity style={[styles.menuItem,]} onPress={handleLogOut}>
                     <Text style={[styles.menuText, styles.dangerText]}>Log Out</Text>
                 </TouchableOpacity>
             </View>
@@ -129,41 +134,34 @@ const styles = StyleSheet.create({
     },
     profileSection: {
         alignItems: 'center',
-        marginTop: 30,
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        marginBottom: 10,
+        marginTop: 40,
+        marginBottom: 30,
     },
     username: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#493628',
     },
     menuContainer: {
-        paddingHorizontal: 30,
+        paddingHorizontal: 24,
+        paddingTop: 10,
+        gap: 12,
     },
     menuItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: '#D9D9D9',
-        paddingVertical: 14,
+        paddingVertical: 16,
         paddingHorizontal: 20,
-        borderRadius: 10,
-        marginBottom: 12,
+        borderRadius: 12,
     },
     menuText: {
         fontSize: 16,
         color: '#493628',
     },
-    dangerItem: {
-        backgroundColor: '#D9D9D9',
-    },
     dangerText: {
         color: 'red',
+        fontWeight: '600',
     },
 });
