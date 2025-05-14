@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "tourkita",
+    "name": "Tourkita",
     "slug": "tourkita",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/TourkitaLogo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/TourkitaLogo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -23,8 +23,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/TourkitaLogo.jpg",
+        "backgroundColor": "#000000"
       },
       "package": "com.ryanchico.tourkita"
     },
