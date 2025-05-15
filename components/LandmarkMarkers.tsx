@@ -8,7 +8,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase"; // your configured Firestore instance
 import { useLandmark } from "../provider/LandmarkProvider";
 
-export default function LandmarkMarkers() {
+export default function LandmarkMarkers({ selectedCategory }: { selectedCategory: string }) {
     const { setSelectedLandmark } = useLandmark();
     const [landmarks, setLandmarks] = useState<any[]>([]);
 
@@ -22,6 +22,7 @@ export default function LandmarkMarkers() {
                         ...data,
                         latitude: parseFloat(data.latitude),
                         longitude: parseFloat(data.longitude),
+                        category: data.category // Ensure this exists in Firestore
                     };
                 });
                 setLandmarks(fetched);
@@ -33,11 +34,15 @@ export default function LandmarkMarkers() {
         fetchLandmarks();
     }, []);
 
-    const points = landmarks.map((landmark) =>
+    const filtered = selectedCategory === "All"
+        ? landmarks
+        : landmarks.filter(l => l.category === selectedCategory);
+
+    const points = filtered.map((landmark) =>
         point([landmark.longitude, landmark.latitude], { landmark })
     );
 
-    const onPointPress = async (event: OnPressEvent) => {
+    const onPointPress = (event: OnPressEvent) => {
         const landmark = event.features[0].properties?.landmark;
         if (landmark) {
             setSelectedLandmark(landmark);

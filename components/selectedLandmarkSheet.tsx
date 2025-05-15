@@ -127,27 +127,64 @@ export default function SelectedLandmarkSheet() {
                     {selectedLandmark.openingHours && (
                         <View style={{ marginTop: 10 }}>
                             <Text style={{ fontWeight: "bold", fontSize: 15 }}>Opening Hours</Text>
-                            {Object.keys(selectedLandmark.openingHours).map((day: string) => {
-                                const dayData = selectedLandmark.openingHours[day];
-                                const openingStatus = dayData.closed
-                                    ? "Closed"
-                                    : `Open from ${convertTo12HourFormat(dayData.open)} to ${convertTo12HourFormat(dayData.close)}`;
-                                const isClosed = dayData.closed;
 
-                                return (
-                                    <Text
-                                        key={day}
-                                        style={{
-                                            color: isClosed && day !== dayOfWeek ? "red" : "#6B5E5E",
-                                            textAlign: "justify",
-                                            marginTop: 5,
-                                            fontSize: 14
-                                        }}
-                                    >
-                                        {`${day.charAt(0).toUpperCase() + day.slice(1)}: ${openingStatus}`}
-                                    </Text>
-                                );
-                            })}
+                            {(() => {
+                                const daysOrder = [
+                                    "monday",
+                                    "tuesday",
+                                    "wednesday",
+                                    "thursday",
+                                    "friday",
+                                    "saturday",
+                                    "sunday",
+                                ];
+                                const dayDisplay = (day: string) => day.charAt(0).toUpperCase() + day.slice(1);
+
+                                const getHoursStr = (day: string) => {
+                                    const dayData = selectedLandmark.openingHours[day];
+                                    if (!dayData || dayData.closed) return "Closed";
+                                    return `Open from ${convertTo12HourFormat(dayData.open)} to ${convertTo12HourFormat(dayData.close)}`;
+                                };
+
+                                const groups: { days: string[]; hours: string }[] = [];
+                                let currentGroup: { days: string[]; hours: string } | null = null;
+
+                                daysOrder.forEach((day) => {
+                                    const hours = getHoursStr(day);
+                                    if (!currentGroup) {
+                                        currentGroup = { days: [day], hours };
+                                    } else if (currentGroup.hours === hours) {
+                                        currentGroup.days.push(day);
+                                    } else {
+                                        groups.push(currentGroup);
+                                        currentGroup = { days: [day], hours };
+                                    }
+                                });
+                                if (currentGroup) groups.push(currentGroup);
+
+                                return groups.map(({ days, hours }, i) => {
+                                    const dayLabel =
+                                        days.length === 1
+                                            ? dayDisplay(days[0])
+                                            : `${dayDisplay(days[0])} - ${dayDisplay(days[days.length - 1])}`;
+
+                                    const isClosed = hours === "Closed";
+
+                                    return (
+                                        <Text
+                                            key={i}
+                                            style={{
+                                                color: isClosed ? "red" : "#6B5E5E",
+                                                textAlign: "justify",
+                                                marginTop: 5,
+                                                fontSize: 14,
+                                            }}
+                                        >
+                                            {`${dayLabel}: ${hours}`}
+                                        </Text>
+                                    );
+                                });
+                            })()}
                         </View>
                     )}
 

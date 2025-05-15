@@ -24,7 +24,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/TourkitaLogo.jpg",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#ffffff"
       },
       "package": "com.ryanchico.tourkita"
     },
@@ -36,9 +36,8 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3dbcc94f-e95c-43ae-af35-368211c7e3d4"
+        "projectId": "11d3aada-199b-4f87-beb5-8f5aa1f0e4e4"
       }
-    },
-    "owner": "rynchc"
+    }
   }
 }
