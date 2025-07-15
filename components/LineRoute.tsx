@@ -2,9 +2,8 @@
 import { LineLayer, ShapeSource } from "@rnmapbox/maps";
 import { Position } from "@rnmapbox/maps/lib/typescript/src/types/Position";
 
-export default function LineRoute({coordinates}: {coordinates: Position[]})
-{
-    return(
+export default function LineRoute({ coordinates }: { coordinates: Position[] }) {
+    return (
         <ShapeSource
             id="route"
             lineMetrics

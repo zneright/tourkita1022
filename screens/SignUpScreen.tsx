@@ -69,12 +69,10 @@ const SignUpScreen = () => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Send email verification
             await sendEmailVerification(user);
 
             Alert.alert("Check your email for the verification link.");
 
-            // Pass the user data to the EmailVerification screen
             navigation.navigate("EmailVerification", {
                 userData: {
                     uid: user.uid,
@@ -100,11 +98,9 @@ const SignUpScreen = () => {
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.formCard}>
                     <Image
-                        source={{
-                            uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/jd0mokk4_expires_30_days.png",
-                        }}
-                        style={styles.logo}
+                        source={require('../assets/TourkitaLogo.jpg')}
                         resizeMode="contain"
+                        style={styles.logo}
                     />
 
                     <View style={styles.tabContainer}>

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface TopHeaderProps {
     title: string;
@@ -12,13 +13,7 @@ export default function TopHeader({ title, onSupportPress }: TopHeaderProps) {
             <Text style={styles.headerText}>{title}</Text>
             {onSupportPress && (
                 <TouchableOpacity style={styles.iconWrapper} onPress={onSupportPress}>
-                    <Image
-                        source={{
-                            uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/0n919gxq_expires_30_days.png",
-                        }}
-                        style={styles.infoIcon}
-                        resizeMode="contain"
-                    />
+                    <Ionicons name="alert-circle-outline" size={24} color="#D6C0B3" />
                 </TouchableOpacity>
             )}
         </View>
@@ -44,10 +39,5 @@ const styles = StyleSheet.create({
     iconWrapper: {
         position: "absolute",
         right: 20,
-    },
-    infoIcon: {
-        width: 24,
-        height: 24,
-        tintColor: "#D6C0B3",
     },
 });

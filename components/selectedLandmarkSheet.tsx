@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { useEffect, useRef } from "react";
-import { Text, Image, View, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Text, Image, View, TouchableOpacity, ActivityIndicator, Modal, Pressable } from "react-native";
 import { useLandmark } from "../provider/LandmarkProvider";
 
 import Entypo from '@expo/vector-icons/Entypo';
@@ -8,15 +8,56 @@ import Fontisto from '@expo/vector-icons/Fontisto';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { db } from "../firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+
 export default function SelectedLandmarkSheet() {
+
+    const [isImageModalVisible, setImageModalVisible] = useState(false);
+
     const { selectedLandmark, duration, distance, loadingDirection, loadDirection } = useLandmark();
     const bottomSheetRef = useRef<BottomSheet>(null);
+    const [averageRating, setAverageRating] = useState<number | null>(null);
+    const [reviewCount, setReviewCount] = useState<number>(0);
 
     useEffect(() => {
         if (selectedLandmark) {
             bottomSheetRef.current?.expand();
+            fetchAverageRating();
         }
     }, [selectedLandmark]);
+
+    const fetchAverageRating = async () => {
+        if (!selectedLandmark) return;
+        try {
+            const q = query(
+                collection(db, "feedbacks"),
+                where("location", "==", selectedLandmark.name)
+            );
+            const querySnapshot = await getDocs(q);
+            const ratings: number[] = [];
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (typeof data.rating === "number") {
+                    ratings.push(data.rating);
+                }
+            });
+
+            if (ratings.length > 0) {
+                const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+                setAverageRating(Number(avg.toFixed(1)));
+                setReviewCount(ratings.length);
+            } else {
+                setAverageRating(null);
+                setReviewCount(0);
+            }
+        } catch (error) {
+            console.error("Error fetching average rating:", error);
+            setAverageRating(null);
+            setReviewCount(0);
+        }
+    };
 
     const handleGetDirection = () => {
         loadDirection();
@@ -74,6 +115,7 @@ export default function SelectedLandmarkSheet() {
             <BottomSheetView style={{ padding: 15 }}>
                 <View style={{ flexDirection: "column", gap: 15 }}>
 
+                    {/* Top Info Row */}
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                         <Text style={{ color: "#6B5E5E", fontWeight: "bold" }}>AR Camera Supported</Text>
 
@@ -98,10 +140,13 @@ export default function SelectedLandmarkSheet() {
                     </View>
 
                     <View style={{ flexDirection: "row", gap: 15 }}>
-                        <Image
-                            source={{ uri: selectedLandmark.image }}
-                            style={{ height: 110, width: 175, borderRadius: 10 }}
-                        />
+                        <TouchableOpacity onPress={() => setImageModalVisible(true)}>
+                            <Image
+                                source={{ uri: selectedLandmark.image }}
+                                style={{ height: 110, width: 175, borderRadius: 10 }}
+                            />
+                        </TouchableOpacity>
+
 
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{selectedLandmark.name}</Text>
@@ -118,7 +163,12 @@ export default function SelectedLandmarkSheet() {
 
                             <View style={{ flexDirection: "row", gap: 5, marginTop: 5 }}>
                                 <Fontisto name="ticket" size={20} color="black" />
-                                <Text>Entrance is P{selectedLandmark.entranceFee}</Text>
+                                <Text>
+                                    Entrance is{" "}
+                                    {selectedLandmark.entranceFee && Number(selectedLandmark.entranceFee) > 0
+                                        ? `P${selectedLandmark.entranceFee}`
+                                        : "Free"}
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -127,19 +177,9 @@ export default function SelectedLandmarkSheet() {
                     {selectedLandmark.openingHours && (
                         <View style={{ marginTop: 10 }}>
                             <Text style={{ fontWeight: "bold", fontSize: 15 }}>Opening Hours</Text>
-
                             {(() => {
-                                const daysOrder = [
-                                    "monday",
-                                    "tuesday",
-                                    "wednesday",
-                                    "thursday",
-                                    "friday",
-                                    "saturday",
-                                    "sunday",
-                                ];
+                                const daysOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
                                 const dayDisplay = (day: string) => day.charAt(0).toUpperCase() + day.slice(1);
-
                                 const getHoursStr = (day: string) => {
                                     const dayData = selectedLandmark.openingHours[day];
                                     if (!dayData || dayData.closed) return "Closed";
@@ -167,7 +207,6 @@ export default function SelectedLandmarkSheet() {
                                         days.length === 1
                                             ? dayDisplay(days[0])
                                             : `${dayDisplay(days[0])} - ${dayDisplay(days[days.length - 1])}`;
-
                                     const isClosed = hours === "Closed";
 
                                     return (
@@ -195,6 +234,16 @@ export default function SelectedLandmarkSheet() {
                             {selectedLandmark.description}
                         </Text>
                     </View>
+
+                    {/* Average Rating */}
+                    {averageRating !== null && (
+                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+                            <FontAwesome5 name="star" size={16} color="#E4B343" />
+                            <Text style={{ marginLeft: 5, fontSize: 16, color: "#4C372B", fontWeight: "bold" }}>
+                                {averageRating} / 5 ({reviewCount} review{reviewCount > 1 ? "s" : ""})
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Learn More Button */}
                     <TouchableOpacity>
@@ -231,6 +280,24 @@ export default function SelectedLandmarkSheet() {
                         </View>
                     </TouchableOpacity>
                 </View>
+
+                <Modal visible={isImageModalVisible} transparent={true}>
+                    <Pressable
+                        style={{
+                            flex: 1,
+                            backgroundColor: "rgba(0,0,0,0.9)",
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                        onPress={() => setImageModalVisible(false)}
+                    >
+                        <Image
+                            source={{ uri: selectedLandmark.image }}
+                            style={{ width: "90%", height: "70%", resizeMode: "contain" }}
+                        />
+                    </Pressable>
+                </Modal>
+
             </BottomSheetView>
         </BottomSheet>
     );

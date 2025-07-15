@@ -20,6 +20,7 @@
     "@rnmapbox/maps": "^10.1.38",
     "expo": "~52.0.46",
     "expo-checkbox": "~4.0.1",
+    "expo-dev-client": "~5.0.20",
     "expo-location": "~18.0.10",
     "expo-status-bar": "~2.0.1",
     "firebase": "^11.6.1",

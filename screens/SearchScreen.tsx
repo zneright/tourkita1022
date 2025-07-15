@@ -1,25 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-    SafeAreaView,
-    ScrollView,
-    View,
-    Text,
-    TextInput,
-    Image,
-    StyleSheet,
-    TouchableOpacity,
-    Modal,
-    Pressable,
+    SafeAreaView, ScrollView, View, Text, TextInput,
+    Image, StyleSheet, TouchableOpacity, Modal, ActivityIndicator
 } from "react-native";
 import TopHeader from "../components/TopHeader";
 import BottomFooter from "../components/BottomFooter";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
+import { collection, getDocs, query } from "firebase/firestore";
+import { db } from "../firebase";
+import { useLandmark } from "../provider/LandmarkProvider";
 
-type Item = {
+type Marker = {
     name: string;
     image: string;
+    category: string;
+    latitude: number;
+    longitude: number;
+    openingHours?: Record<string, { open: string; close: string; closed: boolean }>;
+};
+
+const getOpenStatus = (openingHours?: Marker["openingHours"]) => {
+    if (!openingHours) return "Opening hours unavailable";
+
+    const now = new Date();
+    const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    const today = openingHours[dayName];
+
+    if (!today || today.closed) return "Closed today";
+
+    const [openHour, openMinute] = today.open.split(":").map(Number);
+    const [closeHour, closeMinute] = today.close.split(":").map(Number);
+
+    const openTime = new Date();
+    openTime.setHours(openHour, openMinute, 0, 0);
+
+    const closeTime = new Date();
+    closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+    if (now >= openTime && now <= closeTime) {
+        return `Open now until ${today.close}`;
+    } else {
+        return "Closed now";
+    }
 };
 
 const SearchScreen = () => {
@@ -27,66 +51,79 @@ const SearchScreen = () => {
     const [searchText, setSearchText] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
     const [modalImage, setModalImage] = useState("");
+    const [allMarkers, setAllMarkers] = useState<Marker[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
 
-    const handleImageTap = (image: string) => {
-        setModalImage(image);
+    const { setSelectedLandmark, loadDirection } = useLandmark();
+
+    const handleImageTap = (marker: Marker) => {
+        setSelectedMarker(marker);
+        setModalImage(marker.image);
         setModalVisible(true);
     };
 
-    const recommendations: Item[] = [
-        {
-            name: "Fort Santiago",
-            image: "https://lh3.googleusercontent.com/gps-cs-s/AB5caB8jKmFMVAQ4Alg9Ex7llEcuqWtDp_ybnPcXIZ5khjF-ie8sT8QqykqJB-JKvDOSEcL898GnWO9GMozr7yXgCXsghhq8f9A_6V9V6ioQ_ZHAzw7oe66oPwwJVpGPvGmiMm3jLX4=s1360-w1360-h1020",
-        },
-        {
-            name: "San Agustin Church",
-            image: "https://www.fabulousphilippines.com/images/san-agustin-church-2008.jpg",
-        },
-        {
-            name: "Manila Cathedral",
-            image: "https://upload.wikimedia.org/wikipedia/commons/6/6d/Manila_Cathedral_exterior_2022.jpg",
-        },
-    ];
+    useEffect(() => {
+        const fetchMarkers = async () => {
+            setLoading(true);
+            try {
+                const q = query(collection(db, "markers"));
+                const snapshot = await getDocs(q);
+                const data = snapshot.docs.map(doc => {
+                    const d = doc.data();
+                    return {
+                        name: d.name,
+                        image: d.image?.trim() || "https://via.placeholder.com/150",
+                        category: d.categoryOption || d.category || "Others",
+                        latitude: d.latitude,
+                        longitude: d.longitude,
+                        openingHours: d.openingHours || {},
+                    };
+                });
+                setAllMarkers(data);
+            } catch (err) {
+                console.error("Error fetching markers:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMarkers();
+    }, []);
 
-    const cafes: Item[] = [
-        {
-            name: "La Cathedral Café",
-            image: "https://i.imgur.com/F2gJKMv.jpg",
-        },
-        {
-            name: "Barbara's Heritage Café",
-            image: "https://i.imgur.com/YiybDJv.jpg",
-        },
-        {
-            name: "Ilustrado",
-            image: "https://i.imgur.com/vn8XE9d.jpg",
-        },
-    ];
-
-    const museums: Item[] = [
-        {
-            name: "Casa Manila",
-            image: "https://upload.wikimedia.org/wikipedia/commons/d/d6/Casa_Manila_Museum.jpg",
-        },
-        {
-            name: "Bahay Tsinoy",
-            image: "https://upload.wikimedia.org/wikipedia/commons/f/f2/Bahay_Tsinoy_Museum.jpg",
-        },
-        {
-            name: "Museo de Intramuros",
-            image: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Museo_de_Intramuros%2C_Manila.jpg",
-        },
-    ];
-
-    const filteredRecommendations = recommendations.filter(item =>
-        item.name.toLowerCase().includes(searchText.toLowerCase())
+    const filteredMarkers = allMarkers.filter(marker =>
+        marker.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        marker.category.toLowerCase().includes(searchText.toLowerCase())
     );
+
+    const groupedByCategory = (category: string) =>
+        allMarkers.filter(m => m.category.toLowerCase() === category.toLowerCase());
+
+    const renderSection = (title: string, items: Marker[]) => {
+        if (items.length === 0) return null;
+        return (
+            <>
+                <Text style={styles.sectionTitle}>{title}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                    {items.map((item, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.cardLarge}
+                            onPress={() => handleImageTap(item)}
+                        >
+                            <Image source={{ uri: item.image }} style={styles.cardImageLarge} />
+                            <Text style={styles.cardLabel}>{item.name}</Text>
+                            <Text style={styles.statusLabel}>{getOpenStatus(item.openingHours)}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Search" onSupportPress={() => navigation.navigate("Support")} />
             <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-                {/* Search Input */}
                 <View style={styles.searchWrapper}>
                     <Text style={styles.searchLabel}>Search any keyword...</Text>
                     <View style={styles.searchInputContainer}>
@@ -104,43 +141,56 @@ const SearchScreen = () => {
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Recommendations</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {filteredRecommendations.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.card} onPress={() => handleImageTap(item.image)}>
-                            <Image source={{ uri: item.image }} style={styles.cardImage} />
-                            <Text style={styles.cardLabel}>{item.name}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                {loading && <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />}
 
-                <Text style={styles.sectionTitle}>Cafés</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {cafes.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.cardLarge} onPress={() => handleImageTap(item.image)}>
-                            <Image source={{ uri: item.image }} style={styles.cardImageLarge} />
-                            <Text style={styles.cardLabel}>{item.name}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-
-                <Text style={styles.sectionTitle}>Museums</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {museums.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.cardLarge} onPress={() => handleImageTap(item.image)}>
-                            <Image source={{ uri: item.image }} style={styles.cardImageLarge} />
-                            <Text style={styles.cardLabel}>{item.name}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                {searchText.trim() !== "" ? (
+                    filteredMarkers.length > 0 ? (
+                        renderSection("Search Results", filteredMarkers)
+                    ) : (
+                        <Text style={styles.noResult}>No results found.</Text>
+                    )
+                ) : (
+                    <>
+                        {renderSection("Historical", groupedByCategory("Historical"))}
+                        {renderSection("Museum", groupedByCategory("Museum"))}
+                        {renderSection("Park", groupedByCategory("Park"))}
+                        {renderSection("Restaurant", groupedByCategory("Restaurant"))}
+                        {renderSection("School", groupedByCategory("School"))}
+                        {renderSection("Others", groupedByCategory("Others"))}
+                    </>
+                )}
             </ScrollView>
 
-            {/* Image Modal */}
             <Modal visible={modalVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
-                    <Pressable style={styles.modalContainer} onPress={() => setModalVisible(false)}>
+                    <View style={styles.modalContainer}>
                         <Image source={{ uri: modalImage }} style={styles.modalImage} resizeMode="contain" />
-                    </Pressable>
+                        {selectedMarker && (
+                            <>
+                                <Text style={{ color: "#fff", fontSize: 18, marginVertical: 10, textAlign: "center" }}>
+                                    {selectedMarker.name}
+                                </Text>
+                                <Text style={{ color: "#ccc", fontSize: 14, textAlign: "center" }}>
+                                    {getOpenStatus(selectedMarker.openingHours)}
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.navigateButton}
+                                    onPress={() => {
+                                        setModalVisible(false);
+                                        setSelectedLandmark(selectedMarker);
+                                        loadDirection(); // optional preload
+                                        navigation.navigate("Map", {
+                                            latitude: selectedMarker.latitude,
+                                            longitude: selectedMarker.longitude,
+                                            name: selectedMarker.name,
+                                        });
+                                    }}
+                                >
+                                    <Text style={styles.navigateButtonText}>Navigate</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
                 </View>
             </Modal>
 
@@ -189,14 +239,7 @@ const styles = StyleSheet.create({
         paddingLeft: 22,
         marginBottom: 24,
     },
-    card: { width: 150, marginRight: 16 },
     cardLarge: { width: 209, marginRight: 16 },
-    cardImage: {
-        width: "100%",
-        height: 140,
-        borderRadius: 12,
-        backgroundColor: "#D9D9D9",
-    },
     cardImageLarge: {
         width: "100%",
         height: 160,
@@ -210,6 +253,12 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         textAlign: "center",
     },
+    statusLabel: {
+        fontSize: 12,
+        textAlign: "center",
+        color: "#888",
+        marginTop: 4,
+    },
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.7)",
@@ -221,10 +270,32 @@ const styles = StyleSheet.create({
         height: "70%",
         borderRadius: 10,
         overflow: "hidden",
+        backgroundColor: "#222",
+        padding: 12,
     },
     modalImage: {
         width: "100%",
-        height: "100%",
+        height: "70%",
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    noResult: {
+        textAlign: "center",
+        fontSize: 16,
+        color: "#999",
+        marginTop: 20,
+    },
+    navigateButton: {
+        marginTop: 12,
+        paddingVertical: 10,
+        backgroundColor: "#493628",
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    navigateButtonText: {
+        color: "#FFF",
+        fontSize: 16,
+        fontWeight: "600",
     },
 });
 

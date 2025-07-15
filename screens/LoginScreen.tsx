@@ -61,7 +61,7 @@ const LoginScreen = () => {
                 style={styles.container}
             >
                 <Image
-                    source={{ uri: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/at68qzhu_expires_30_days.png' }}
+                    source={require('../assets/TourkitaLogo.jpg')}
                     resizeMode="contain"
                     style={styles.logo}
                 />
@@ -116,11 +116,7 @@ const LoginScreen = () => {
                     <Text style={styles.guestText}>Log in as Guest</Text>
                 </TouchableOpacity>
 
-                <Image
-                    source={{ uri: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/8xg4yipa_expires_30_days.png' }}
-                    resizeMode="cover"
-                    style={styles.bottomImage}
-                />
+
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -132,11 +128,11 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-    container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20 },
+    container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, paddingBottom: 190 },
     logo: { width: 200, height: 200 },
     agreementText: { color: '#6B5E5E', fontSize: 13, textAlign: 'center', width: width * 0.8 },
     linkText: { fontWeight: 'bold', color: '#603F26' },
-    tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
+    tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
     activeTab: { color: '#603F26', fontSize: 20 },
     inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26 },
     input: { height: 45, backgroundColor: '#FFFFFF', borderColor: '#603F26', borderRadius: 15, borderWidth: 1, paddingHorizontal: 15, width: width * 0.8, marginBottom: 10 },
