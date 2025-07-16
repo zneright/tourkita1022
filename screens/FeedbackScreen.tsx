@@ -76,7 +76,7 @@ const FeedbackScreen = () => {
                 .filter(name =>
                     name.toLowerCase().includes(text.toLowerCase())
                 )
-                .slice(0, 5); // Limit suggestions to 5
+                .slice(0, 5);
 
             setLocationSuggestions(suggestions);
             setShowSuggestions(suggestions.length > 0);
