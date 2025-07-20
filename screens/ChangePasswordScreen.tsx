@@ -4,19 +4,17 @@ import {
     View,
     ScrollView,
     Text,
-    Image,
     TextInput,
     TouchableOpacity,
     Alert,
     ActivityIndicator,
     BackHandler,
 } from "react-native";
-import logo from "./components/TourkitaLogo.jpg";
-import TopHeader from "../components/TopHeader";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
-import { auth } from "../firebase"; // Your initialized Firebase
+import { auth } from "../firebase";
 import {
     EmailAuthProvider,
     reauthenticateWithCredential,
@@ -33,7 +31,6 @@ const ChangePasswordScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // 🔙 Handle Android hardware back press
     useEffect(() => {
         const onBackPress = () => {
             Alert.alert(
@@ -48,11 +45,10 @@ const ChangePasswordScreen = () => {
                     },
                 ]
             );
-            return true; // prevent default behavior
+            return true;
         };
 
         BackHandler.addEventListener("hardwareBackPress", onBackPress);
-
         return () => {
             BackHandler.removeEventListener("hardwareBackPress", onBackPress);
         };
@@ -73,7 +69,6 @@ const ChangePasswordScreen = () => {
         }
 
         setLoading(true);
-
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
 
         try {
@@ -90,22 +85,15 @@ const ChangePasswordScreen = () => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-            <TopHeader
-                title="Change Password"
-                onSupportPress={() => navigation.navigate("Support")}
-            />
+            {/* Custom Header with Icon */}
+            <View style={{ flexDirection: "row", alignItems: "center", padding: 20 }}>
+                <MaterialCommunityIcons name="lock-reset" size={28} color="#493628" />
+                <Text style={{ fontSize: 20, marginLeft: 10, color: "#493628", fontWeight: "bold" }}>
+                    Change Password
+                </Text>
+            </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                <View style={{ alignItems: "center", marginVertical: 20 }}>
-                    <Image
-                        source={{
-                            uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/VDRo2IU0ne/z7e5t1ql_expires_30_days.png",
-                        }}
-                        style={{ width: 200, height: 200 }}
-                        resizeMode="contain"
-                    />
-                </View>
-
                 {[
                     {
                         label: "Current Password",
