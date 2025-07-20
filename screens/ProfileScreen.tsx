@@ -8,6 +8,7 @@ import {
     Alert,
     BackHandler,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from 'firebase/auth';
@@ -20,26 +21,34 @@ import BottomFooter from '../components/BottomFooter';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
-const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-
-export default function ProfileScreen() {
+const ProfileScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [name, setName] = useState<string>('');
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const auth = getAuth();
-            const currentUser = auth.currentUser;
-
-            if (currentUser) {
-                const userRef = doc(db, 'users', currentUser.uid);
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists()) {
-                    const data = userSnap.data();
-                    const fullName = `${data.firstName} ${data.middleInitial || ''} ${data.lastName}`.trim();
-                    setName(fullName);
+            try {
+                const cachedName = await AsyncStorage.getItem('cachedUserName');
+                if (cachedName) {
+                    setName(cachedName);
                 }
+
+                const auth = getAuth();
+                const currentUser = auth.currentUser;
+
+                if (currentUser) {
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        const data = userSnap.data();
+                        const fullName = `${data.firstName} ${data.middleInitial || ''} ${data.lastName}`.trim();
+                        setName(fullName);
+                        await AsyncStorage.setItem('cachedUserName', fullName);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading name:', error);
             }
         };
 
@@ -49,9 +58,7 @@ export default function ProfileScreen() {
             return true;
         });
 
-        return () => {
-            backHandler.remove();
-        };
+        return () => backHandler.remove();
     }, []);
 
     const handleLogOut = () => {
@@ -67,6 +74,7 @@ export default function ProfileScreen() {
                         const auth = getAuth();
                         try {
                             await signOut(auth);
+                            await AsyncStorage.removeItem('cachedUserName');
                             navigation.replace('Login');
                         } catch (error) {
                             console.error('Logout error: ', error);
@@ -81,10 +89,6 @@ export default function ProfileScreen() {
 
     const handleDeleteAccount = () => {
         navigation.navigate('DeleteAccount');
-    };
-
-    const handleUpdateEmail = () => {
-        navigation.navigate('UpdateEmail');
     };
 
     return (
@@ -104,9 +108,6 @@ export default function ProfileScreen() {
                 }, {
                     title: 'Terms',
                     onPress: () => navigation.navigate('Terms')
-                }, {
-                    title: 'Update Email',
-                    onPress: handleUpdateEmail
                 }].map((item, idx) => (
                     <TouchableOpacity key={idx} style={styles.menuItem} onPress={item.onPress}>
                         <Text style={styles.menuText}>{item.title}</Text>
@@ -118,14 +119,16 @@ export default function ProfileScreen() {
                     <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.menuItem,]} onPress={handleLogOut}>
+                <TouchableOpacity style={[styles.menuItem]} onPress={handleLogOut}>
                     <Text style={[styles.menuText, styles.dangerText]}>Log Out</Text>
                 </TouchableOpacity>
             </View>
             <BottomFooter active="Profile" />
         </SafeAreaView>
     );
-}
+};
+
+export default ProfileScreen;
 
 const styles = StyleSheet.create({
     container: {

@@ -23,6 +23,7 @@ import { db } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
+import { BackHandler } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -73,6 +74,16 @@ const EditProfileScreen = () => {
 
         fetchUserData();
     }, []);
+
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+            navigation.goBack(); // Navigate back to the previous screen
+            return true; // Prevent default behavior
+        });
+
+        return () => backHandler.remove(); // Cleanup
+    }, []);
+
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prevState => ({ ...prevState, [field]: value }));

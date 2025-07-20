@@ -7,7 +7,9 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
+    BackHandler,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
 import { useNavigation } from '@react-navigation/native';
@@ -27,16 +29,24 @@ export default function ViewProfileScreen() {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
+                // Try to get cached user data
+                const cached = await AsyncStorage.getItem('cachedUserData');
+                if (cached) {
+                    setUserData(JSON.parse(cached));
+                    setLoading(false); // show cached data immediately
+                }
+
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
-
                 if (!currentUser) return;
 
                 const userRef = doc(db, 'users', currentUser.uid);
                 const userSnap = await getDoc(userRef);
 
                 if (userSnap.exists()) {
-                    setUserData(userSnap.data());
+                    const data = userSnap.data();
+                    setUserData(data);
+                    await AsyncStorage.setItem('cachedUserData', JSON.stringify(data));
                 }
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -46,6 +56,14 @@ export default function ViewProfileScreen() {
         };
 
         fetchUserData();
+
+        const backAction = () => {
+            navigation.goBack();
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+        return () => backHandler.remove();
     }, []);
 
     if (loading) {
@@ -77,7 +95,11 @@ export default function ViewProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
+            <TopHeader
+                title="Profile"
+                onBackPress={() => navigation.goBack()}
+                onSupportPress={() => navigation.navigate('Support')}
+            />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.profileSection}>
                     {profileFields.map((item, idx) => (
@@ -95,7 +117,6 @@ export default function ViewProfileScreen() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-            <BottomFooter active="Profile" />
         </SafeAreaView>
     );
 }

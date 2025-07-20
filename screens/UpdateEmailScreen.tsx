@@ -1,186 +1,120 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     SafeAreaView,
-    ScrollView,
     Text,
     TextInput,
     Button,
-    ActivityIndicator,
     Alert,
-    BackHandler,
+    ActivityIndicator,
+    StyleSheet,
 } from "react-native";
+import { auth, db } from "../firebase";
+import {
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    updateEmail,
+    sendEmailVerification,
+} from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { auth, db } from "../firebase"; // Initialized Firebase auth and Firestore
 import { RootStackParamList } from "../Navigation/types";
-import {
-    sendEmailVerification,
-    updateEmail,
-    fetchSignInMethodsForEmail,
-} from "firebase/auth"; // Firebase auth methods
-import { doc, updateDoc } from "firebase/firestore"; // Firestore modular imports
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 
 const UpdateEmailScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    const [newEmail, setNewEmail] = useState<string>("");
-    const [loading, setLoading] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [password, setPassword] = useState("");
+    const [newEmail, setNewEmail] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    // Function to check if the email is already in use
-    const checkEmailInUse = async (email: string) => {
-        try {
-            const methods = await fetchSignInMethodsForEmail(auth, email);
-            return methods.length > 0;
-        } catch (error) {
-            return false;
-        }
-    };
-
-    const sendVerificationEmail = async () => {
+    const handleUpdateEmail = async () => {
         const user = auth.currentUser;
-        if (user) {
-            try {
-                await sendEmailVerification(user);
-                Alert.alert("Verification Sent", "A verification link has been sent to your email.");
-            } catch (error: any) {
-                setErrorMessage(error.message || "An error occurred while sending verification.");
-            }
-        } else {
-            setErrorMessage("No user is logged in.");
+        if (!user) {
+            Alert.alert("Error", "No user is currently logged in.");
+            return;
         }
-    };
 
-    const handleUpdateEmail = async (user: any) => {
-        if (!newEmail) {
-            setErrorMessage("Please enter a valid email.");
+        if (!password || !newEmail) {
+            Alert.alert("Missing Fields", "Please enter both password and new email.");
             return;
         }
 
         setLoading(true);
-        setErrorMessage("");
 
         try {
+            const credential = EmailAuthProvider.credential(user.email!, password);
+            await reauthenticateWithCredential(user, credential); // Step 1: Re-auth
+            // Step 2: Update Email
+
+            await sendEmailVerification(user);                    // Step 3: Send to new email
+
             await updateEmail(user, newEmail);
-
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, { email: newEmail });
-
-            Alert.alert("Email Updated", "Your email has been successfully updated.");
-            navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-        } catch (error: any) {
-            setErrorMessage(error.message || "An error occurred while updating your email.");
-        }
-
-        setLoading(false);
-    };
-
-    const handleEmailUpdateProcess = async () => {
-        if (!newEmail) {
-            setErrorMessage("Please enter a valid email.");
-            return;
-        }
-
-        setLoading(true);
-        setErrorMessage("");
-
-        try {
-            const isEmailInUse = await checkEmailInUse(newEmail);
-
-            if (isEmailInUse) {
-                setErrorMessage("This email is already in use. Please use a different email.");
-                setLoading(false);
-                return;
-            }
+            await updateDoc(doc(db, "users", user.uid), {
+                email: newEmail,
+            });                                                   // Step 4: Update Firestore
 
             Alert.alert(
-                "Confirm Email Change",
-                `We will now send a verification link to ${newEmail}. You must confirm it before we update your account.`,
-                [
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setLoading(false),
-                    },
-                    {
-                        text: "Send Link",
-                        onPress: async () => {
-                            await auth.signOut();
-                            navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-
-                            Alert.alert(
-                                "Verify Your Email",
-                                "A verification link has been sent to your new email. Please confirm to complete the process."
-                            );
-
-                            setLoading(false);
-                        },
-                    },
-                ]
+                "Email Updated",
+                "Your email has been updated. Please verify your new email before logging in again."
             );
+
+            auth.signOut();                                       // Step 5: Sign out
+            navigation.replace("Login");
+
         } catch (error: any) {
-            setErrorMessage(error.message || "An error occurred during the process.");
+            console.error("Error updating email:", error);
+            Alert.alert("Error", error.message || "Failed to update email.");
+        } finally {
             setLoading(false);
         }
     };
 
-
-    const handleBackPress = () => {
-        Alert.alert(
-            "Cancel Email Update",
-            "Are you sure you want to cancel the email update?",
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "OK", onPress: () => navigation.goBack() },
-            ]
-        );
-        return true;
-    };
-
-    useEffect(() => {
-        BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-        return () => {
-            BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
-        };
-    }, []);
-
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-            <ScrollView contentContainerStyle={{ paddingVertical: 40, alignItems: "center" }}>
-                <Text style={{ color: "#603F26", fontSize: 20, marginBottom: 17 }}>
-                    Update Your Email
-                </Text>
-
-                <TextInput
-                    style={{
-                        width: "80%",
-                        height: 40,
-                        borderColor: "#ddd",
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        paddingHorizontal: 10,
-                        marginBottom: 20,
-                    }}
-                    placeholder="Enter new email"
-                    value={newEmail}
-                    onChangeText={setNewEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                />
-
-                {errorMessage ? (
-                    <Text style={{ color: "red", marginBottom: 10 }}>{errorMessage}</Text>
-                ) : null}
-
-                {loading ? (
-                    <ActivityIndicator size="large" color="#603F26" />
-                ) : (
-                    <Button title="Check and Update Email" onPress={handleEmailUpdateProcess} />
-                )}
-            </ScrollView>
+        <SafeAreaView style={styles.container}>
+            <Text style={styles.label}>Enter your password to confirm:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+            />
+            <Text style={styles.label}>Enter your new email:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="New Email"
+                value={newEmail}
+                onChangeText={setNewEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+            />
+            {loading ? (
+                <ActivityIndicator size="large" />
+            ) : (
+                <Button title="Update Email" onPress={handleUpdateEmail} />
+            )}
         </SafeAreaView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 20,
+        justifyContent: "center",
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 16,
+        marginBottom: 5,
+    },
+});
 
 export default UpdateEmailScreen;
