@@ -2,14 +2,16 @@ import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import RootNavigator from "./Navigation/AppNavigator";
-
+import { UserProvider } from "./screens/UserContext";
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+      <UserProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </UserProvider>
     </GestureHandlerRootView>
   );
 }

@@ -6,9 +6,13 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
+    Alert,
+    ActivityIndicator,
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../firebase";
 
 type RootStackParamList = {
     Login: undefined;
@@ -20,24 +24,30 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const ForgotPasswordScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [email, setEmail] = useState("");
-    const [code, setCode] = useState("");
-    const [isCodeSent, setIsCodeSent] = useState(false);
+    const [isEmailSent, setIsEmailSent] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSendCode = () => {
+    const handleSendResetLink = async () => {
         if (!email) {
-            alert("Please enter your email.");
+            Alert.alert("Missing Email", "Please enter your email address.");
             return;
         }
-        setIsCodeSent(true);
-        alert("Verification code sent to your email!");
-    };
 
-    const handleReset = () => {
-        if (email && code.length === 4) {
-            alert("Password reset link sent!");
-            navigation.navigate("Login");
-        } else {
-            alert("Please enter your email and the 4-digit code.");
+        if (isLoading) return; // prevent multiple submissions
+        setIsLoading(true);
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setIsEmailSent(true);
+            Alert.alert(
+                "Email Sent",
+                "If this email is registered, a password reset link has been sent."
+            );
+        } catch (error: any) {
+            console.error("Reset email error:", error);
+            Alert.alert("Error", error.message || "Failed to send password reset email.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -45,40 +55,43 @@ const ForgotPasswordScreen = () => {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.title}>Forgot Password</Text>
+
                 <TextInput
                     style={styles.input}
                     keyboardType="email-address"
+                    autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
                     placeholder="Enter your email"
                     placeholderTextColor="#999"
                 />
-                {!isCodeSent ? (
-                    <TouchableOpacity style={styles.sendCodeButton} onPress={handleSendCode}>
-                        <Text style={styles.sendCodeText}>Send Code</Text>
+
+                <TouchableOpacity
+                    style={[styles.sendCodeButton, isLoading && { opacity: 0.6 }]}
+                    onPress={handleSendResetLink}
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.sendCodeText}>
+                            {isEmailSent ? "Resend Email" : "Send Reset Link"}
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+                {isEmailSent ? (
+                    <TouchableOpacity
+                        style={styles.confirmButton}
+                        onPress={() => navigation.navigate("Login")}
+                    >
+                        <Text style={styles.confirmText}>Back to Login</Text>
                     </TouchableOpacity>
                 ) : (
-                    <>
-                        <TextInput
-                            style={[styles.input, styles.codeInput]}
-                            keyboardType="numeric"
-                            maxLength={4}
-                            value={code}
-                            onChangeText={setCode}
-                            placeholder="1234"
-                            placeholderTextColor="#999"
-                        />
-                        <TouchableOpacity onPress={() => alert("Code resent!")}>
-                            <Text style={styles.resendCodeText}>Resend Code</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.confirmButton} onPress={handleReset}>
-                            <Text style={styles.confirmText}>Reset Password</Text>
-                        </TouchableOpacity>
-                    </>
+                    <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                        <Text style={styles.footerText}>← Back to Login</Text>
+                    </TouchableOpacity>
                 )}
-                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                    <Text style={styles.footerText}>Back to Login</Text>
-                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
@@ -113,31 +126,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 16,
     },
-    codeInput: {
-        textAlign: "center",
-        fontSize: 18,
-    },
     sendCodeButton: {
         width: "100%",
         backgroundColor: "#603F26",
         paddingVertical: 12,
         borderRadius: 10,
         alignItems: "center",
-        marginBottom: 24,
+        marginBottom: 16,
     },
     sendCodeText: {
         color: "#FFFFFF",
         fontSize: 16,
         fontWeight: "600",
     },
-    resendCodeText: {
-        color: "#6B5E5E",
-        fontSize: 14,
-        marginBottom: 24,
-    },
     confirmButton: {
         width: "100%",
-        backgroundColor: "#603F26",
+        backgroundColor: "#6B5E5E",
         paddingVertical: 14,
         borderRadius: 10,
         alignItems: "center",
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
     },
     confirmText: {
         color: "#FFFFFF",
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "600",
     },
     footerText: {

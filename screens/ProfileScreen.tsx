@@ -18,12 +18,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
+import { useUser } from './UserContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
 const ProfileScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [name, setName] = useState<string>('');
+    const { isGuest } = useUser();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -36,7 +38,7 @@ const ProfileScreen = () => {
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
 
-                if (currentUser) {
+                if (currentUser && !isGuest) {
                     const userRef = doc(db, 'users', currentUser.uid);
                     const userSnap = await getDoc(userRef);
 
@@ -54,12 +56,9 @@ const ProfileScreen = () => {
 
         fetchUserData();
 
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            return true;
-        });
-
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
         return () => backHandler.remove();
-    }, []);
+    }, [isGuest]);
 
     const handleLogOut = () => {
         Alert.alert(
@@ -71,13 +70,12 @@ const ProfileScreen = () => {
                     text: 'Log Out',
                     style: 'destructive',
                     onPress: async () => {
-                        const auth = getAuth();
                         try {
-                            await signOut(auth);
+                            await signOut(getAuth());
                             await AsyncStorage.removeItem('cachedUserName');
                             navigation.replace('Login');
                         } catch (error) {
-                            console.error('Logout error: ', error);
+                            console.error('Logout error:', error);
                             Alert.alert('Error', 'An error occurred while logging out.');
                         }
                     },
@@ -87,42 +85,56 @@ const ProfileScreen = () => {
         );
     };
 
-    const handleDeleteAccount = () => {
-        navigation.navigate('DeleteAccount');
-    };
-
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
             <View style={styles.profileSection}>
-                <Text style={styles.username}>{name}</Text>
+                <Text style={styles.username}>
+                    {isGuest ? 'Guest User' : name}
+                </Text>
             </View>
 
             <View style={styles.menuContainer}>
-                {[{
-                    title: 'View Profile',
-                    onPress: () => navigation.navigate('ViewProfile')
-                }, {
-                    title: 'Change Password',
-                    onPress: () => navigation.navigate('ChangePassword')
-                }, {
-                    title: 'Terms',
-                    onPress: () => navigation.navigate('Terms')
-                }].map((item, idx) => (
-                    <TouchableOpacity key={idx} style={styles.menuItem} onPress={item.onPress}>
-                        <Text style={styles.menuText}>{item.title}</Text>
-                        <Feather name="chevron-right" size={20} color="#493628" />
-                    </TouchableOpacity>
-                ))}
+                {!isGuest && (
+                    <>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ViewProfile')}>
+                            <Text style={styles.menuText}>View Profile</Text>
+                            <Feather name="chevron-right" size={20} color="#493628" />
+                        </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.menuItem]} onPress={handleDeleteAccount}>
-                    <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
-                </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Terms')}>
+                            <Text style={styles.menuText}>Terms and Privacy</Text>
+                            <Feather name="chevron-right" size={20} color="#493628" />
+                        </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.menuItem]} onPress={handleLogOut}>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ChangePassword')}>
+                            <Text style={styles.menuText}>Change Password</Text>
+                            <Feather name="chevron-right" size={20} color="#493628" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('DeleteAccount')}>
+                            <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+
+                <TouchableOpacity style={styles.menuItem} onPress={handleLogOut}>
                     <Text style={[styles.menuText, styles.dangerText]}>Log Out</Text>
                 </TouchableOpacity>
             </View>
+
+            {isGuest && (
+                <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
+                    <TouchableOpacity style={styles.signUpButton} onPress={() => navigation.navigate('SignUp')}>
+                        <Text style={styles.signUpText}>Sign Up to Create Full Account</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.termsButton} onPress={() => navigation.navigate('Terms')}>
+                        <Text style={styles.termsText}>Terms and Privacy</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             <BottomFooter active="Profile" />
         </SafeAreaView>
     );
@@ -147,14 +159,13 @@ const styles = StyleSheet.create({
     },
     menuContainer: {
         paddingHorizontal: 24,
-        paddingTop: 10,
         gap: 12,
     },
     menuItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#D9D9D9',
+        backgroundColor: '#F0F0F0',
         paddingVertical: 16,
         paddingHorizontal: 20,
         borderRadius: 12,
@@ -166,5 +177,27 @@ const styles = StyleSheet.create({
     dangerText: {
         color: 'red',
         fontWeight: '600',
+    },
+    signUpButton: {
+        backgroundColor: '#fcd34d',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    signUpText: {
+        color: '#493628',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    termsButton: {
+        marginTop: 12,
+        alignItems: 'center',
+    },
+    termsText: {
+        color: '#6b7280',
+        fontSize: 14,
+        textDecorationLine: 'underline',
     },
 });

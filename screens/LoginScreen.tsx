@@ -18,11 +18,14 @@ import { RootStackParamList } from '../Navigation/types';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Feather';
+import { useUser } from '../screens/UserContext'; // ✅ import User Context
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
     const navigation = useNavigation<NavigationProp>();
+    const { setUser, setIsGuest } = useUser(); // ✅ context methods
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -40,7 +43,11 @@ const LoginScreen = () => {
             const user = userCredential.user;
 
             if (user.emailVerified) {
+                setUser(user);       // ✅ store Firebase user
+                setIsGuest(false);   // ✅ ensure it's not a guest
                 navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
+            } else {
+                Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
             }
         } catch (error: any) {
             let message = 'Login failed. Please try again.';
@@ -52,6 +59,12 @@ const LoginScreen = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGuestLogin = () => {
+        setUser(null);          // ✅ no user
+        setIsGuest(true);       // ✅ mark as guest
+        navigation.reset({ index: 0, routes: [{ name: 'Maps' }] }); // or 'Maps'
     };
 
     return (
@@ -112,10 +125,9 @@ const LoginScreen = () => {
                     <Text style={styles.loginText}>{loading ? 'Logging in...' : 'Login'}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate('MainTabs')}>
+                <TouchableOpacity onPress={handleGuestLogin}>
                     <Text style={styles.guestText}>Log in as Guest</Text>
                 </TouchableOpacity>
-
 
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -128,20 +140,52 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-    container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, paddingBottom: 190 },
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 20,
+        paddingBottom: 190,
+    },
     logo: { width: 200, height: 200 },
-    agreementText: { color: '#6B5E5E', fontSize: 13, textAlign: 'center', width: width * 0.8 },
+    agreementText: {
+        color: '#6B5E5E',
+        fontSize: 13,
+        textAlign: 'center',
+        width: width * 0.8,
+    },
     linkText: { fontWeight: 'bold', color: '#603F26' },
     tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
     activeTab: { color: '#603F26', fontSize: 20 },
     inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26 },
-    input: { height: 45, backgroundColor: '#FFFFFF', borderColor: '#603F26', borderRadius: 15, borderWidth: 1, paddingHorizontal: 15, width: width * 0.8, marginBottom: 10 },
-    passwordContainer: { flexDirection: 'row', width: width * 0.8, marginBottom: 10, position: 'relative' },
+    input: {
+        height: 45,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#603F26',
+        borderRadius: 15,
+        borderWidth: 1,
+        paddingHorizontal: 15,
+        width: width * 0.8,
+        marginBottom: 10,
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        width: width * 0.8,
+        marginBottom: 10,
+        position: 'relative',
+    },
     eyeIcon: { position: 'absolute', right: 10, top: 12 },
     forgotPasswordContainer: { alignSelf: 'flex-end', marginRight: 48 },
     forgotPassword: { color: '#603F26', fontSize: 10 },
-    loginButton: { alignItems: 'center', backgroundColor: '#603F26', borderRadius: 5, paddingVertical: 11, width: width * 0.8, marginVertical: 10, elevation: 4 },
+    loginButton: {
+        alignItems: 'center',
+        backgroundColor: '#603F26',
+        borderRadius: 5,
+        paddingVertical: 11,
+        width: width * 0.8,
+        marginVertical: 10,
+        elevation: 4,
+    },
     loginText: { color: '#FFFFFF', fontSize: 20 },
     guestText: { color: '#603F26', fontSize: 14, marginTop: 6, marginBottom: 10 },
-    bottomImage: { width: width, height: 200, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
 });

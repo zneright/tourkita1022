@@ -29,8 +29,5 @@ export type RootStackParamList = {
     Feedback: undefined;
     Splash: undefined;
     DeleteAccount: undefined;
-    UpdateEmail: undefined;
     Map: { latitude: number; longitude: number; name: string };
-    EnterCurrentEmail: undefined;
-    CurrentEmailVerification: undefined;
 };

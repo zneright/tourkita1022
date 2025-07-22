@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from "../firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { RootStackParamList } from '../Navigation/types';
+import { BackHandler } from "react-native";
 import {
     SafeAreaView,
     View,
@@ -34,6 +35,14 @@ const SignUpScreen = () => {
     const [email, setEmail] = useState("");
     const [isChecked, setIsChecked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            navigation.goBack();
+            return true;
+        });
+
+        return () => backHandler.remove();
+    }, []);
 
     const handleNext = async () => {
         if (!isChecked) {

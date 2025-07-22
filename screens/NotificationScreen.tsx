@@ -6,8 +6,6 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    Platform,
-    StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -26,8 +24,11 @@ import { db } from "../firebase";
 import TopHeader from "../components/TopHeader";
 import BottomFooter from "../components/BottomFooter";
 import { FontAwesome5 } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Notification">;
+
+type NotificationSource = "notifications" | "adminMessages";
 
 interface Notification {
     id: string;
@@ -36,7 +37,7 @@ interface Notification {
     timestamp: Date;
     category: string;
     viewed: boolean;
-    source: "notifications" | "adminMessages";
+    source: NotificationSource;
     context?: string;
     contextType?: "Feature" | "Location";
 }
@@ -49,52 +50,66 @@ const NotificationScreen = () => {
 
     const auth = getAuth();
     const user = auth.currentUser;
+    const isGuest = !user;
+
     const userId = user?.uid || "guest";
     const userEmail = user?.email || "guest@example.com";
 
     useEffect(() => {
+        if (isGuest) {
+            setLoading(false);
+            return;
+        }
+
         const fetchNotifications = async () => {
             try {
-                const notificationsSnapshot = await getDocs(collection(db, "notifications"));
-                const notificationsData = notificationsSnapshot.docs.map(docSnap => {
-                    const raw = docSnap.data();
-                    const viewedBy: string[] = Array.isArray(raw.viewedBy) ? raw.viewedBy : [];
+                const cached = await AsyncStorage.getItem("cachedNotifications");
+                if (cached) {
+                    const parsed: Notification[] = JSON.parse(cached);
+                    setNotifications(parsed.map(n => ({ ...n, timestamp: new Date(n.timestamp) })));
+                }
 
+                const [notifSnap, adminSnap] = await Promise.all([
+                    getDocs(collection(db, "notifications")),
+                    getDocs(query(collection(db, "adminMessages"), where("to", "==", userEmail))),
+                ]);
+
+                const notifData: Notification[] = notifSnap.docs.map(docSnap => {
+                    const data = docSnap.data();
+                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
                     return {
                         id: docSnap.id,
-                        title: raw.title || "Untitled",
-                        message: raw.message || "No message provided.",
-                        timestamp: raw.timestamp?.toDate?.() ?? new Date(),
-                        category: raw.category || "info",
+                        title: data.title || "Untitled",
+                        message: data.message || "No message provided.",
+                        timestamp: data.timestamp?.toDate?.() ?? new Date(),
+                        category: data.category || "info",
                         viewed: viewedBy.includes(userId),
-                        source: "notifications" as const,
+                        source: "notifications",
                     };
                 });
 
-                const adminMessagesSnapshot = await getDocs(
-                    query(collection(db, "adminMessages"), where("to", "==", userEmail))
-                );
-
-                const adminMessagesData = adminMessagesSnapshot.docs.map(docSnap => {
-                    const raw = docSnap.data();
-                    const viewedBy: string[] = Array.isArray(raw.viewedBy) ? raw.viewedBy : [];
-
+                const adminData: Notification[] = adminSnap.docs.map(docSnap => {
+                    const data = docSnap.data();
+                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
                     return {
                         id: docSnap.id,
                         title: "Admin Response to Your Feedback",
-                        message: raw.message || "No reply message.",
-                        timestamp: raw.sentAt?.toDate?.() ?? new Date(),
+                        message: data.message || "No reply message.",
+                        timestamp: data.sentAt?.toDate?.() ?? new Date(),
                         category: "feedback",
                         viewed: viewedBy.includes(userId),
-                        source: "adminMessages" as const,
-                        context: raw.context || "", // e.g. "Login" or "Fort Santiago"
-                        contextType: raw.contextType || "", // "Feature" or "Location"
+                        source: "adminMessages",
+                        context: data.context || "",
+                        contextType: data.contextType || "",
                     };
                 });
 
-                const combined = [...notificationsData, ...adminMessagesData];
-                const sorted = combined.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-                setNotifications(sorted);
+                const combined = [...notifData, ...adminData].sort(
+                    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+                );
+
+                setNotifications(combined);
+                await AsyncStorage.setItem("cachedNotifications", JSON.stringify(combined));
             } catch (err) {
                 console.error("Fetch error:", err);
             } finally {
@@ -103,7 +118,7 @@ const NotificationScreen = () => {
         };
 
         fetchNotifications();
-    }, [userId, userEmail]);
+    }, [isGuest, userId, userEmail]);
 
     const toggleExpand = async (id: string) => {
         const notif = notifications.find(n => n.id === id);
@@ -112,15 +127,15 @@ const NotificationScreen = () => {
         if (!notif.viewed) {
             try {
                 const docRef = doc(db, notif.source, id);
-                await updateDoc(docRef, {
-                    viewedBy: arrayUnion(userId),
-                });
+                await updateDoc(docRef, { viewedBy: arrayUnion(userId) });
 
-                setNotifications(prev =>
-                    prev.map(n => (n.id === id ? { ...n, viewed: true } : n))
+                const updated = notifications.map(n =>
+                    n.id === id ? { ...n, viewed: true } : n
                 );
+                setNotifications(updated);
+                await AsyncStorage.setItem("cachedNotifications", JSON.stringify(updated));
             } catch (err) {
-                console.warn("Could not update viewed status:", err);
+                console.warn("Update viewed failed:", err);
             }
         }
 
@@ -129,83 +144,78 @@ const NotificationScreen = () => {
 
     const getIcon = (category: string) => {
         switch (category.toLowerCase()) {
-            case "updates":
-                return <FontAwesome5 name="bullhorn" size={20} color="#5E35B1" />;
-            case "promotions":
-                return <FontAwesome5 name="gift" size={20} color="#FF6F00" />;
-            case "alerts":
-                return <FontAwesome5 name="exclamation-triangle" size={20} color="#D32F2F" />;
-            case "reminders":
-                return <FontAwesome5 name="clock" size={20} color="#0288D1" />;
-            case "feedback":
-                return <FontAwesome5 name="comment-dots" size={20} color="#4CAF50" />;
-            default:
-                return <FontAwesome5 name="info-circle" size={20} color="#757575" />;
+            case "updates": return <FontAwesome5 name="bullhorn" size={20} color="#5E35B1" />;
+            case "promotions": return <FontAwesome5 name="gift" size={20} color="#FF6F00" />;
+            case "alerts": return <FontAwesome5 name="exclamation-triangle" size={20} color="#D32F2F" />;
+            case "reminders": return <FontAwesome5 name="clock" size={20} color="#0288D1" />;
+            case "feedback": return <FontAwesome5 name="comment-dots" size={20} color="#4CAF50" />;
+            default: return <FontAwesome5 name="info-circle" size={20} color="#757575" />;
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            <TopHeader
-                title="Intramuros Notifications"
-                onSupportPress={() => navigation.navigate("Support")}
-            />
+            <TopHeader title="Notifications" onSupportPress={() => navigation.navigate("Support")} />
 
             <View style={styles.contentWrapper}>
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    {loading ? (
-                        <Text style={styles.centerText}>Loading notifications...</Text>
-                    ) : notifications.length === 0 ? (
-                        <Text style={styles.centerText}>No notifications found.</Text>
-                    ) : (
-                        notifications.map(item => (
-                            <View
-                                key={item.id + item.source}
-                                style={[
-                                    styles.notificationCard,
-                                    !item.viewed && styles.unviewedCard,
-                                ]}
-                            >
-                                <TouchableOpacity
-                                    onPress={() => toggleExpand(item.id)}
-                                    style={styles.notificationHeader}
+                {isGuest ? (
+                    <View style={styles.centeredBox}>
+                        <Text style={styles.guestText}>Notifications are only available for registered users.</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate("SignUp")} style={styles.signupButton}>
+                            <Text style={styles.signupText}>Create a Free Account</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        {loading ? (
+                            <Text style={styles.centerText}>Loading notifications...</Text>
+                        ) : notifications.length === 0 ? (
+                            <Text style={styles.centerText}>No notifications found.</Text>
+                        ) : (
+                            notifications.map(item => (
+                                <View
+                                    key={item.id + item.source}
+                                    style={[
+                                        styles.notificationCard,
+                                        !item.viewed && styles.unviewedCard,
+                                    ]}
                                 >
-                                    {getIcon(item.category)}
-                                    <View style={{ flex: 1, marginLeft: 10 }}>
-                                        <Text
-                                            style={[
+                                    <TouchableOpacity
+                                        onPress={() => toggleExpand(item.id)}
+                                        style={styles.notificationHeader}
+                                    >
+                                        {getIcon(item.category)}
+                                        <View style={{ flex: 1, marginLeft: 10 }}>
+                                            <Text style={[
                                                 styles.notificationTitle,
                                                 !item.viewed && { fontWeight: "bold" },
-                                            ]}
-                                        >
-                                            {item.title}
-                                        </Text>
-                                        <Text style={styles.datePosted}>
-                                            Posted on: {item.timestamp.toLocaleDateString()} at{" "}
-                                            {item.timestamp.toLocaleTimeString()}
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-
-                                {expandedId === item.id && (
-                                    <View style={styles.messageContainer}>
-                                        {item.context && item.contextType && (
-                                            <Text style={styles.contextLine}>
-                                                Feedback on {item.contextType}: {item.context}
+                                            ]}>
+                                                {item.title}
                                             </Text>
-                                        )}
-                                        <Text style={styles.messageText}>{item.message}</Text>
-                                    </View>
-                                )}
-                            </View>
-                        ))
-                    )}
-                </ScrollView>
+                                            <Text style={styles.datePosted}>
+                                                Posted on: {item.timestamp.toLocaleDateString()} at {item.timestamp.toLocaleTimeString()}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {expandedId === item.id && (
+                                        <View style={styles.messageContainer}>
+                                            {item.context && item.contextType && (
+                                                <Text style={styles.contextLine}>
+                                                    Feedback on {item.contextType}: {item.context}
+                                                </Text>
+                                            )}
+                                            <Text style={styles.messageText}>{item.message}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ))
+                        )}
+                    </ScrollView>
+                )}
             </View>
 
-            <View style={styles.footer}>
-                <BottomFooter active="Notification" />
-            </View>
+            <BottomFooter active="Notification" />
         </SafeAreaView>
     );
 };
@@ -228,6 +238,30 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginTop: 20,
         color: "#666",
+    },
+    guestText: {
+        textAlign: "center",
+        fontSize: 16,
+        color: "#555",
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    centeredBox: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 24,
+    },
+    signupButton: {
+        backgroundColor: "#fcd34d",
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 10,
+    },
+    signupText: {
+        color: "#493628",
+        fontWeight: "bold",
+        fontSize: 16,
     },
     notificationCard: {
         backgroundColor: "#fff",
@@ -274,13 +308,5 @@ const styles = StyleSheet.create({
     messageText: {
         fontSize: 14,
         color: "#493628",
-        flexWrap: "wrap",
-    },
-    footer: {
-        backgroundColor: "#493628",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingVertical: 10,
     },
 });
-    

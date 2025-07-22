@@ -6,7 +6,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import TermsScreen from '../screens/TermsScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
-import EmailVerificationScreen from '../screens/EnterCurrentEmail';
+import EmailVerificationScreen from '../screens/EmailVerificationSreen';
 import MapsScreen from '../screens/MapScreen';
 import SupportScreen from '../screens/SupportScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -22,18 +22,12 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import SplashScreen from "../screens/SplashScreen";
 import DeleteAccountScreen from '../screens/DeleteAccountScreen';
-import EnterCurrentEmailScreen from '../screens/EnterCurrentEmail';
-import CurrentEmailVerificationScreen from '../screens/CurrentEmailVerification';
 const Stack = createNativeStackNavigator<RootStackParamList>();
-import UpdateEmailScreen from '../screens/UpdateEmailScreen';
 const AppNavigator = () => {
     return (
         <GestureHandlerRootView>
             <LandmarkProvider>
                 <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
-                    <Stack.Screen name="UpdateEmail" component={UpdateEmailScreen} />
-                    <Stack.Screen name="EnterCurrentEmail" component={EnterCurrentEmailScreen} />
-                    <Stack.Screen name="CurrentEmailVerification" component={CurrentEmailVerificationScreen} />
                     <Stack.Screen name="Map" component={MapsScreen} />
                     <Stack.Screen name="Splash" component={SplashScreen} />
                     <Stack.Screen name="Login" component={LoginScreen} />
