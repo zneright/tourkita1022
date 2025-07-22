@@ -9,6 +9,7 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    Image,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -23,6 +24,7 @@ import {
     serverTimestamp,
     getDocs,
 } from "firebase/firestore";
+import * as ImagePicker from 'expo-image-picker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Feedback">;
 
@@ -41,7 +43,52 @@ const FeedbackScreen = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
 
     const [selectedFeature, setSelectedFeature] = useState("");
+    const [imageUri, setImageUri] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
 
+    const handleImagePick = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== "granted") {
+            Alert.alert("Permission denied", "We need access to your photos.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets.length > 0) {
+            setImageUri(result.assets[0].uri);
+        }
+    };
+
+    const uploadImageToCloudinary = async (): Promise<string | null> => {
+        if (!imageUri) return null;
+
+        const formData = new FormData();
+        formData.append("file", {
+            uri: imageUri,
+            type: "image/jpeg",
+            name: "feedback.jpg",
+        } as any);
+        formData.append("upload_preset", "Feedback image");
+
+        try {
+            const response = await fetch("https://api.cloudinary.com/v1_1/dupjdmjha/image/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+            return data.secure_url;
+        } catch (error) {
+            console.error("Cloudinary upload error:", error);
+            return null;
+        }
+    };
 
     useEffect(() => {
         const currentUser = auth.currentUser;
@@ -86,36 +133,46 @@ const FeedbackScreen = () => {
     };
 
     const handleSubmit = async () => {
-        if (!feedbackType) {
-            Alert.alert("Feedback Type is required");
+        if (!feedbackType || !comment) {
+            Alert.alert("Error", "Please complete all required fields.");
             return;
         }
 
-        if (feedbackType === "App Feedback" && !selectedFeature) {
-            Alert.alert("Please select an app feature.");
-            return;
-        }
+        setUploading(true);
 
-        setIsSubmitting(true);
+        let imageUrl = "";
+        if (imageUri) {
+            const uploadedUrl = await uploadImageToCloudinary();
+            if (uploadedUrl) imageUrl = uploadedUrl;
+        }
 
         try {
-            await addDoc(collection(db, "feedbacks"), {
+            const feedbackData = {
                 email,
                 feedbackType,
-                location: showLocationDropdown ? selectedLocation : "",
+                location: feedbackType === "Location Feedback" ? selectedLocation : null,
+                feature: feedbackType === "App Feedback" ? selectedFeature : null,
                 rating,
                 comment,
-                feature: feedbackType === "App Feedback" ? selectedFeature : "",
+                imageUrl,
                 createdAt: serverTimestamp(),
-            });
+            };
+
+            await addDoc(collection(db, "feedbacks"), feedbackData);
 
             Alert.alert("Success", "Your feedback has been submitted.");
-            navigation.goBack();
+            // Reset form
+            setFeedbackType("");
+            setSelectedLocation("");
+            setSelectedFeature("");
+            setRating(4);
+            setComment("");
+            setImageUri(null);
         } catch (error) {
-            console.error("Error saving feedback:", error);
-            Alert.alert("Error", "Something went wrong. Please try again.");
+            console.error("Submit Error:", error);
+            Alert.alert("Error", "Failed to submit feedback.");
         } finally {
-            setIsSubmitting(false);
+            setUploading(false);
         }
     };
 
@@ -124,6 +181,7 @@ const FeedbackScreen = () => {
             <TopHeader title="Feedback" />
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.label}>Tell us about our app or a location...</Text>
+
                 <View style={styles.inputContainer}>
                     <Icon name="account" size={20} color="#4C372B" style={{ marginRight: 8 }} />
                     <TextInput
@@ -132,6 +190,14 @@ const FeedbackScreen = () => {
                         editable={false}
                     />
                 </View>
+
+                <TouchableOpacity style={styles.uploadButton} onPress={handleImagePick}>
+                    <Text style={styles.uploadButtonText}>
+                        {imageUri ? "Change Image" : "Attach Screenshot (optional)"}
+                    </Text>
+                </TouchableOpacity>
+
+                {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
 
                 <Text style={styles.label}>Feedback Type</Text>
                 <View style={styles.dropdownContainer}>
@@ -148,13 +214,14 @@ const FeedbackScreen = () => {
                         <Picker.Item label="Location Feedback" value="Location Feedback" />
                     </Picker>
                 </View>
+
                 {feedbackType === "App Feedback" && (
                     <>
                         <Text style={styles.label}>Select App Feature</Text>
                         <View style={styles.dropdownContainer}>
                             <Picker
                                 selectedValue={selectedFeature}
-                                onValueChange={(itemValue) => setSelectedFeature(itemValue)}
+                                onValueChange={setSelectedFeature}
                                 style={styles.dropdown}
                             >
                                 <Picker.Item label="Select Feature" value="" />
@@ -224,9 +291,9 @@ const FeedbackScreen = () => {
                     <TouchableOpacity
                         style={styles.submitButton}
                         onPress={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || uploading}
                     >
-                        {isSubmitting ? (
+                        {isSubmitting || uploading ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
                             <Text style={styles.submitText}>SUBMIT</Text>
@@ -241,12 +308,8 @@ const FeedbackScreen = () => {
 export default FeedbackScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    scrollContainer: {
-        padding: 20,
-    },
+    container: { flex: 1 },
+    scrollContainer: { padding: 20 },
     label: {
         fontSize: 14,
         color: "#4C372B",
@@ -310,5 +373,22 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
         fontSize: 14,
+    },
+    uploadButton: {
+        backgroundColor: "#D9C5B2",
+        padding: 10,
+        borderRadius: 5,
+        alignItems: "center",
+        marginTop: 10,
+    },
+    uploadButtonText: {
+        color: "#4C372B",
+        fontWeight: "bold",
+    },
+    previewImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 5,
+        marginTop: 10,
     },
 });

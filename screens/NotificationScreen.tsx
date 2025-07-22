@@ -6,6 +6,8 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
+    Image,
+    Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -25,7 +27,6 @@ import TopHeader from "../components/TopHeader";
 import BottomFooter from "../components/BottomFooter";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Notification">;
 
 type NotificationSource = "notifications" | "adminMessages";
@@ -40,6 +41,8 @@ interface Notification {
     source: NotificationSource;
     context?: string;
     contextType?: "Feature" | "Location";
+    imageUrl?: string;
+    viewedBy?: string[];
 }
 
 const NotificationScreen = () => {
@@ -55,11 +58,18 @@ const NotificationScreen = () => {
     const userId = user?.uid || "guest";
     const userEmail = user?.email || "guest@example.com";
 
+    const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
+
+
     useEffect(() => {
         if (isGuest) {
             setLoading(false);
             return;
         }
+        const userCreationTime = user?.metadata?.creationTime
+            ? new Date(user.metadata.creationTime)
+            : new Date(0);
+
 
         const fetchNotifications = async () => {
             try {
@@ -74,39 +84,71 @@ const NotificationScreen = () => {
                     getDocs(query(collection(db, "adminMessages"), where("to", "==", userEmail))),
                 ]);
 
-                const notifData: Notification[] = notifSnap.docs.map(docSnap => {
-                    const data = docSnap.data();
-                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                    return {
-                        id: docSnap.id,
-                        title: data.title || "Untitled",
-                        message: data.message || "No message provided.",
-                        timestamp: data.timestamp?.toDate?.() ?? new Date(),
-                        category: data.category || "info",
-                        viewed: viewedBy.includes(userId),
-                        source: "notifications",
-                    };
+                const notifData: Notification[] = notifSnap.docs
+                    .map(docSnap => {
+                        const data = docSnap.data();
+                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                        return {
+                            id: docSnap.id,
+                            title: data.title || "Untitled",
+                            message: data.message || "No message provided.",
+                            timestamp: data.timestamp?.toDate?.() ?? new Date(),
+                            category: data.category || "info",
+                            viewed: viewedBy.includes(userId),
+                            source: "notifications",
+                            imageUrl: data.imageUrl || "",
+
+                        };
+                    });
+
+                const adminData: Notification[] = adminSnap.docs
+                    .map(docSnap => {
+                        const data = docSnap.data();
+                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                        return {
+                            id: docSnap.id,
+                            title: "Admin Response to Your Feedback",
+                            message: data.message || "No reply message.",
+                            timestamp: data.sentAt?.toDate?.() ?? new Date(),
+                            category: "feedback",
+                            viewed: viewedBy.includes(userId),
+                            source: "adminMessages",
+                            context: data.context || "",
+                            contextType: data.contextType || "",
+                        };
+                    });
+                const filteredNotifData = notifData.filter(n => {
+                    const isRecent = n.timestamp >= userCreationTime;
+                    const isUnseenWelcome =
+                        n.title?.toLowerCase().includes("welcome") &&
+                        n.category === "updates" &&
+                        !(n.viewedBy || []).includes(userId);
+
+                    return isRecent || isUnseenWelcome;
                 });
 
-                const adminData: Notification[] = adminSnap.docs.map(docSnap => {
-                    const data = docSnap.data();
-                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                    return {
-                        id: docSnap.id,
-                        title: "Admin Response to Your Feedback",
-                        message: data.message || "No reply message.",
-                        timestamp: data.sentAt?.toDate?.() ?? new Date(),
-                        category: "feedback",
-                        viewed: viewedBy.includes(userId),
-                        source: "adminMessages",
-                        context: data.context || "",
-                        contextType: data.contextType || "",
-                    };
+                notifData.forEach(async (n) => {
+                    if (
+                        n.title?.toLowerCase().includes("welcome") &&
+                        n.category === "updates" &&
+                        !(n.viewedBy || []).includes(userId)
+                    ) {
+                        const notifRef = doc(db, "notifications", n.id);
+                        await updateDoc(notifRef, {
+                            viewedBy: arrayUnion(userId),
+                        });
+                    }
                 });
 
-                const combined = [...notifData, ...adminData].sort(
-                    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-                );
+
+
+
+                const filteredAdminData = adminData.filter(n => n.timestamp >= userCreationTime);
+
+
+                let combined = [...filteredNotifData, ...filteredAdminData];
+
+                combined.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
                 setNotifications(combined);
                 await AsyncStorage.setItem("cachedNotifications", JSON.stringify(combined));
@@ -119,6 +161,7 @@ const NotificationScreen = () => {
 
         fetchNotifications();
     }, [isGuest, userId, userEmail]);
+
 
     const toggleExpand = async (id: string) => {
         const notif = notifications.find(n => n.id === id);
@@ -166,58 +209,122 @@ const NotificationScreen = () => {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <ScrollView contentContainerStyle={styles.scrollContent}>
-                        {loading ? (
-                            <Text style={styles.centerText}>Loading notifications...</Text>
-                        ) : notifications.length === 0 ? (
-                            <Text style={styles.centerText}>No notifications found.</Text>
-                        ) : (
-                            notifications.map(item => (
-                                <View
-                                    key={item.id + item.source}
-                                    style={[
-                                        styles.notificationCard,
-                                        !item.viewed && styles.unviewedCard,
-                                    ]}
-                                >
-                                    <TouchableOpacity
-                                        onPress={() => toggleExpand(item.id)}
-                                        style={styles.notificationHeader}
+                    <>
+                        <ScrollView contentContainerStyle={styles.scrollContent}>
+                            {loading ? (
+                                <Text style={styles.centerText}>Loading notifications...</Text>
+                            ) : notifications.length === 0 ? (
+                                <Text style={styles.centerText}>No notifications found.</Text>
+                            ) : (
+                                notifications.map(item => (
+                                    <View
+                                        key={item.id + item.source}
+                                        style={[
+                                            styles.notificationCard,
+                                            !item.viewed && styles.unviewedCard,
+                                        ]}
                                     >
-                                        {getIcon(item.category)}
-                                        <View style={{ flex: 1, marginLeft: 10 }}>
-                                            <Text style={[
-                                                styles.notificationTitle,
-                                                !item.viewed && { fontWeight: "bold" },
-                                            ]}>
-                                                {item.title}
-                                            </Text>
-                                            <Text style={styles.datePosted}>
-                                                Posted on: {item.timestamp.toLocaleDateString()} at {item.timestamp.toLocaleTimeString()}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => toggleExpand(item.id)}
+                                            style={styles.notificationHeader}
+                                        >
+                                            {item.imageUrl ? (
+                                                <TouchableOpacity onPress={() => setModalImageUrl(item.imageUrl!)}>
+                                                    <Image source={{ uri: item.imageUrl }} style={styles.thumbnailImage} />
+                                                </TouchableOpacity>
+                                            ) : (
+                                                <View style={styles.iconWrapper}>{getIcon(item.category)}</View>
 
-                                    {expandedId === item.id && (
-                                        <View style={styles.messageContainer}>
-                                            {item.context && item.contextType && (
-                                                <Text style={styles.contextLine}>
-                                                    Feedback on {item.contextType}: {item.context}
-                                                </Text>
                                             )}
-                                            <Text style={styles.messageText}>{item.message}</Text>
-                                        </View>
-                                    )}
+
+                                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                                <Text
+                                                    style={[
+                                                        styles.notificationTitle,
+                                                        !item.viewed && { fontWeight: "bold" },
+                                                    ]}
+                                                >
+                                                    {item.title}
+                                                </Text>
+                                                <Text style={styles.datePosted}>
+                                                    Posted on: {item.timestamp.toLocaleDateString()} at {item.timestamp.toLocaleTimeString()}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        {expandedId === item.id && (
+                                            <View style={styles.messageContainer}>
+                                                {item.context && item.contextType && (
+                                                    <Text style={styles.contextLine}>
+                                                        Feedback on {item.contextType}: {item.context}
+                                                    </Text>
+                                                )}
+                                                <Text style={styles.messageText}>{item.message}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                ))
+                            )}
+                        </ScrollView>
+
+                        {modalImageUrl && (
+                            <View style={styles.modalOverlay}>
+                                <TouchableOpacity
+                                    style={styles.modalBackdrop}
+                                    onPress={() => setModalImageUrl(null)}
+                                />
+                                <View style={styles.modalContent}>
+                                    <Image
+                                        source={{ uri: modalImageUrl }}
+                                        style={styles.modalImage}
+                                        resizeMode="contain"
+                                    />
+
+                                    {notifications
+                                        .filter((n) => n.imageUrl === modalImageUrl)
+                                        .map((n) => (
+                                            <View key={n.id} style={styles.modalMessageBox}>
+                                                <Text style={styles.modalTitle}>{n.title}</Text>
+                                                <Text style={styles.modalTimestamp}>
+                                                    {n.timestamp.toLocaleString()}
+                                                </Text>
+                                                <Text style={styles.modalMessage}>
+                                                    {n.message.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                                                        part.match(/^https?:\/\//) ? (
+                                                            <Text
+                                                                key={i}
+                                                                style={styles.modalLink}
+                                                                onPress={() => Linking.openURL(part)}
+                                                            >
+                                                                {part}
+                                                            </Text>
+                                                        ) : (
+                                                            <Text key={i}>{part}</Text>
+                                                        )
+                                                    )}
+                                                </Text>
+                                            </View>
+                                        ))}
+
+                                    <TouchableOpacity
+                                        onPress={() => setModalImageUrl(null)}
+                                        style={styles.okButton}
+                                    >
+                                        <Text style={styles.okText}>OK</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            ))
+                            </View>
                         )}
-                    </ScrollView>
+
+                    </>
                 )}
             </View>
 
             <BottomFooter active="Notification" />
         </SafeAreaView>
     );
+
+
 };
 
 export default NotificationScreen;
@@ -281,8 +388,9 @@ const styles = StyleSheet.create({
     },
     notificationHeader: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "center",
     },
+
     notificationTitle: {
         fontSize: 16,
         fontWeight: "600",
@@ -309,4 +417,100 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#493628",
     },
+    thumbnailImage: {
+        width: 50,
+        height: 50,
+        borderRadius: 6,
+        marginRight: 10,
+    },
+
+    modalOverlay: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "rgba(0,0,0,0.8)",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+
+    modalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
+
+    modalContent: {
+        backgroundColor: "#fff",
+        paddingVertical: 20,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        alignItems: "center",
+        maxHeight: "85%",
+        width: "90%",
+    },
+
+    modalImage: {
+        width: "100%",
+        height: 250,
+        borderRadius: 10,
+        marginBottom: 16,
+        backgroundColor: "#f0f0f0",
+    },
+
+
+    okButton: {
+        backgroundColor: "#007AFF",
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+
+    okText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    modalMessageBox: {
+        width: "100%",
+        marginBottom: 20,
+    },
+
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#493628",
+        marginBottom: 6,
+        textAlign: "center",
+    },
+
+    modalTimestamp: {
+        fontSize: 12,
+        color: "#888",
+        textAlign: "center",
+        marginBottom: 10,
+    },
+
+    modalMessage: {
+        fontSize: 14,
+        color: "#333",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+
+    modalLink: {
+        color: "#007AFF",
+        textDecorationLine: "underline",
+    },
+
+    iconWrapper: {
+        width: 50,
+        height: 50,
+        borderRadius: 6,
+        backgroundColor: "#EEE",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+
 });
