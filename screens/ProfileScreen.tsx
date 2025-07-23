@@ -18,7 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
-import { useUser } from './UserContext';
+import { useUser } from '../context/UserContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -31,9 +31,7 @@ const ProfileScreen = () => {
         const fetchUserData = async () => {
             try {
                 const cachedName = await AsyncStorage.getItem('cachedUserName');
-                if (cachedName) {
-                    setName(cachedName);
-                }
+                if (cachedName) setName(cachedName);
 
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
@@ -41,7 +39,6 @@ const ProfileScreen = () => {
                 if (currentUser && !isGuest) {
                     const userRef = doc(db, 'users', currentUser.uid);
                     const userSnap = await getDoc(userRef);
-
                     if (userSnap.exists()) {
                         const data = userSnap.data();
                         const fullName = `${data.firstName} ${data.middleInitial || ''} ${data.lastName}`.trim();
@@ -55,7 +52,6 @@ const ProfileScreen = () => {
         };
 
         fetchUserData();
-
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
         return () => backHandler.remove();
     }, [isGuest]);
@@ -85,55 +81,54 @@ const ProfileScreen = () => {
         );
     };
 
+    const renderMenuItem = (
+        label: string,
+        onPress?: () => void,
+        locked?: boolean,
+        danger?: boolean
+    ) => (
+        <TouchableOpacity
+            style={styles.menuItem}
+            onPress={locked ? undefined : onPress}
+            disabled={locked}
+        >
+            <Text style={[styles.menuText, danger && styles.dangerText]}>{label}</Text>
+            <Feather
+                name={locked ? 'lock' : danger ? 'chevron-right' : 'chevron-right'}
+                size={20}
+                color={danger ? '#ef4444' : locked ? '#9ca3af' : '#493628'}
+            />
+        </TouchableOpacity>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
+
             <View style={styles.profileSection}>
-                <Text style={styles.username}>
-                    {isGuest ? 'Guest User' : name}
-                </Text>
+                <Text style={styles.username}>{isGuest ? 'Guest User' : name}</Text>
             </View>
 
             <View style={styles.menuContainer}>
-                {!isGuest && (
-                    <>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ViewProfile')}>
-                            <Text style={styles.menuText}>View Profile</Text>
-                            <Feather name="chevron-right" size={20} color="#493628" />
-                        </TouchableOpacity>
+                {renderMenuItem('View Profile', () => navigation.navigate('ViewProfile'), isGuest)}
+                {renderMenuItem('Terms and Privacy', () => navigation.navigate('Terms'))}
+                {renderMenuItem('Change Password', () => navigation.navigate('ChangePassword'), isGuest)}
+                {renderMenuItem('Delete Account', () => navigation.navigate('DeleteAccount'), isGuest, true)}
 
-                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Terms')}>
-                            <Text style={styles.menuText}>Terms and Privacy</Text>
-                            <Feather name="chevron-right" size={20} color="#493628" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ChangePassword')}>
-                            <Text style={styles.menuText}>Change Password</Text>
-                            <Feather name="chevron-right" size={20} color="#493628" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('DeleteAccount')}>
-                            <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
-                        </TouchableOpacity>
-                    </>
+                {isGuest && (
+                    <TouchableOpacity
+                        style={styles.signUpButton}
+                        onPress={() => navigation.navigate('SignUp')}
+                    >
+                        <Text style={styles.signUpText}>Sign Up to Unlock Features</Text>
+                    </TouchableOpacity>
                 )}
 
                 <TouchableOpacity style={styles.menuItem} onPress={handleLogOut}>
                     <Text style={[styles.menuText, styles.dangerText]}>Log Out</Text>
+                    <Feather name="log-out" size={20} color="#ef4444" />
                 </TouchableOpacity>
             </View>
-
-            {isGuest && (
-                <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
-                    <TouchableOpacity style={styles.signUpButton} onPress={() => navigation.navigate('SignUp')}>
-                        <Text style={styles.signUpText}>Sign Up to Create Full Account</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.termsButton} onPress={() => navigation.navigate('Terms')}>
-                        <Text style={styles.termsText}>Terms and Privacy</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
 
             <BottomFooter active="Profile" />
         </SafeAreaView>
@@ -185,19 +180,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         marginTop: 20,
+        marginBottom: 10,
     },
     signUpText: {
         color: '#493628',
         fontSize: 16,
         fontWeight: '600',
-    },
-    termsButton: {
-        marginTop: 12,
-        alignItems: 'center',
-    },
-    termsText: {
-        color: '#6b7280',
-        fontSize: 14,
-        textDecorationLine: 'underline',
     },
 });

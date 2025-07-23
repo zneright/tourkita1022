@@ -16,10 +16,40 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
 import BottomFooter from "../components/BottomFooter";
 
+import { useUser } from "../context/UserContext";
+
+
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
 
 const SupportScreen = () => {
+
+    const { isGuest } = useUser();
+    const SupportRow = ({
+        label,
+        subtitle,
+        icon,
+        onPress,
+        disabled = false,
+    }: {
+        label: string;
+        subtitle: string;
+        icon: string;
+        onPress: () => void;
+        disabled?: boolean;
+    }) => (
+        <TouchableOpacity
+            style={[styles.rowBox, disabled && { opacity: 0.5 }]}
+            onPress={onPress}
+            disabled={disabled}
+        >
+            <Icon name={icon} size={32} color="#4C372B" style={{ marginRight: 12 }} />
+            <View>
+                <Text style={styles.boxLabel}>{label}</Text>
+                <Text style={styles.boxSubtitle}>{subtitle}</Text>
+            </View>
+        </TouchableOpacity>
+    );
 
     const navigation = useNavigation<NavigationProp>();
     const handlePress = (label: string) => {
@@ -52,12 +82,25 @@ const SupportScreen = () => {
                     icon="help-circle-outline"
                     onPress={() => handlePress("FAQs Questions")}
                 />
-                <SupportRow
-                    label="Feedback"
-                    subtitle="Tell us what you think about our app"
-                    icon="message-text-outline"
-                    onPress={() => navigation.navigate("Feedback")}
-                />
+                {isGuest ? (
+                    <SupportRow
+                        label="Feedback (Locked)"
+                        subtitle="Please log in to submit feedback"
+                        icon="lock"
+                        onPress={() =>
+                            Alert.alert("Access Denied", "Please log in to use the Feedback feature.")
+                        }
+                        disabled={true}
+                    />
+                ) : (
+                    <SupportRow
+                        label="Feedback"
+                        subtitle="Tell us what you think about our app"
+                        icon="message-text-outline"
+                        onPress={() => navigation.navigate("Feedback")}
+                    />
+                )}
+
 
             </ScrollView>
             <BottomFooter active="" />

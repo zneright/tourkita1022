@@ -18,7 +18,7 @@ import { RootStackParamList } from '../Navigation/types';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Feather';
-import { useUser } from '../screens/UserContext'; // ✅ import User Context
+import { useUser } from '../context/UserContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
