@@ -18,8 +18,10 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
+import { generateCustomUid } from "../utils/customUid";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 
 const SignUpScreen = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -35,6 +37,12 @@ const SignUpScreen = () => {
     const [email, setEmail] = useState("");
     const [isChecked, setIsChecked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const generateCustomUid = (): string => {
+        const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
+        return `U${randomDigits}`;
+    };
+
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             navigation.goBack();
@@ -81,10 +89,10 @@ const SignUpScreen = () => {
             await sendEmailVerification(user);
 
             Alert.alert("Check your email for the verification link.");
-
+            const customUid = generateCustomUid();
             navigation.navigate("EmailVerification", {
                 userData: {
-                    uid: user.uid,
+                    uid: customUid,
                     firstName,
                     middleInitial,
                     lastName,

@@ -11,7 +11,7 @@ import {
     BackHandler
 } from 'react-native';
 import { getAuth, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -53,10 +53,16 @@ export default function DeleteAccountScreen() {
                 if (userSnap.exists()) {
                     const userData = userSnap.data();
 
-                    const archivedRef = collection(db, 'archived');
-                    await setDoc(doc(archivedRef, currentUser.uid), userData);
+                    const archivedRef = doc(db, 'archived', currentUser.uid);
+                    await setDoc(archivedRef, {
+                        ...userData,
+                        archivedAt: new Date().toISOString(), // Optional: timestamp of archiving
+                    });
 
-                    await deleteUser(currentUser);
+                    await setDoc(userRef, {}); // Optional: clear before deletion
+                    await deleteDoc(userRef); // Delete from users collection
+
+                    await deleteUser(currentUser); // Firebase auth account deletion
 
                     Alert.alert('Account Deleted', 'Your account has been deleted successfully.');
                     navigation.replace('Login');

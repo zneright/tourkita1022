@@ -362,6 +362,8 @@ const styles = StyleSheet.create({
     cancelButton: {
         fontSize: 14,
         color: "#4C372B",
+        paddingTop: 20,
+        marginInlineStart: 175,
     },
     submitButton: {
         backgroundColor: "#4C372B",

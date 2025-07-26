@@ -48,8 +48,8 @@ export default function MapsScreen() {
     const [showCategories, setShowCategories] = useState(true);
     const [showBottomNav, setShowBottomNav] = useState(true);
 
-    // <-- This is the missing state causing your error -->
-    const [selectedCategory, setSelectedCategory] = useState<string>("Tourist Spots");
+    const [selectedCategory, setSelectedCategory] = useState<string>("All");
+    const [isLoading, setIsLoading] = useState(false);
 
     const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
         onActive: (event) => {
@@ -109,38 +109,58 @@ export default function MapsScreen() {
             </View>
 
             <View style={styles.container}>
-                <MapView
-                    style={styles.map}
-                    styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
-                    rotateEnabled
-                >
-                    <Camera
-                        zoomLevel={15}
-                        centerCoordinate={[120.97542723276051, 14.591293316236834]}
-                        pitch={60}
-                        maxBounds={{
-                            ne: [120.98057084428427, 14.599918973377212],
-                            sw: [120.96574001513486, 14.576564367241561],
-                        }}
-                    />
-                    <LocationPuck
-                        puckBearingEnabled={true}
-                        puckBearing="heading"
-                        pulsing={{ isEnabled: true }}
-                        androidRenderMode="gps"
-                    />
-                    <LineBoundary />
-                    <LandmarkMarkers selectedCategory={selectedCategory} />
+                <View style={styles.mapContainer}>
+                    <MapView
+                        style={styles.map}
+                        styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
+                        rotateEnabled
+                    >
+                        <Camera
+                            zoomLevel={15}
+                            centerCoordinate={[120.97542723276051, 14.591293316236834]}
+                            pitch={60}
+                            maxBounds={{
+                                ne: [120.98057084428427, 14.599918973377212],
+                                sw: [120.96574001513486, 14.576564367241561],
+                            }}
+                        />
+                        <LocationPuck
+                            puckBearingEnabled={true}
+                            puckBearing="heading"
+                            pulsing={{ isEnabled: true }}
+                            androidRenderMode="gps"
+                        />
+                        <LineBoundary />
+                        <LandmarkMarkers
+                            selectedCategory={selectedCategory}
+                            onLoadingChange={setIsLoading}
+                        />
+                        {showDirection && directionCoordinates && (
+                            <LineRoute coordinates={directionCoordinates} />
+                        )}
+                    </MapView>
 
-                    {showDirection && directionCoordinates && (
-                        <LineRoute coordinates={directionCoordinates} />
+                    {isLoading && (
+                        <View style={styles.loadingOverlay}>
+                            <ActivityIndicator size="large" color="#493628" />
+                            <Text style={styles.loadingText}>Loading landmarks...</Text>
+                        </View>
                     )}
-                </MapView>
+                </View>
                 <WeatherProvider />
+
+
             </View>
 
-            {showBottomNav && <BottomFooter active="Maps" />}
+            {showBottomNav && (
+                <View style={styles.footerWrapper}>
+                    <BottomFooter active="Maps" />
+                </View>
+            )}
+
+
         </SafeAreaView>
+
     );
 }
 
@@ -148,6 +168,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    mapContainer: {
+        flex: 1,
+        position: 'relative',
+    },
+    footerWrapper: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20,
+    },
+
     map: {
         height: "100%",
         width: "100%",
@@ -187,4 +219,22 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginVertical: 6,
     },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)', // Optional: Slightly transparent white
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+
+    loadingText: {
+        marginTop: 10,
+        color: '#fff',
+        fontSize: 16,
+    },
+
 });

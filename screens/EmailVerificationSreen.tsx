@@ -40,7 +40,7 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
 
         const interval = setInterval(() => {
             checkEmailVerification();
-        }, 5000);
+        }, 3000);
 
         return () => clearInterval(interval);
     }, []);
@@ -68,7 +68,7 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
         if (isEmailVerified && user) {
             const userDataWithCreatedAt = {
                 ...userData,
-                uid: user.uid,
+                customUid: user.uid,
                 createdAt: new Date().toISOString(),
             };
 

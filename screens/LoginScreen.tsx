@@ -11,6 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
+    ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,6 +20,7 @@ import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Feather';
 import { useUser } from '../context/UserContext';
+import { loginAsGuest } from '../utils/guestLogin';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -28,7 +30,8 @@ const LoginScreen = () => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loadingLogin, setLoadingLogin] = useState(false);
+    const [loadingGuest, setLoadingGuest] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
@@ -37,14 +40,14 @@ const LoginScreen = () => {
             return;
         }
 
-        setLoading(true);
+        setLoadingLogin(true);
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
             if (user.emailVerified) {
-                setUser(user);       // ✅ store Firebase user
-                setIsGuest(false);   // ✅ ensure it's not a guest
+                setUser(user);
+                setIsGuest(false);
                 navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
             } else {
                 Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
@@ -54,17 +57,25 @@ const LoginScreen = () => {
             if (error.code === 'auth/user-not-found') message = 'No user found with that email.';
             else if (error.code === 'auth/wrong-password') message = 'Incorrect password.';
             else if (error.code === 'auth/invalid-email') message = 'Invalid email format.';
-
             Alert.alert('Login Error', message);
         } finally {
-            setLoading(false);
+            setLoadingLogin(false);
         }
     };
 
-    const handleGuestLogin = () => {
-        setUser(null);          // ✅ no user
-        setIsGuest(true);       // ✅ mark as guest
-        navigation.reset({ index: 0, routes: [{ name: 'Maps' }] }); // or 'Maps'
+    const handleGuestLogin = async () => {
+        setLoadingGuest(true);
+        try {
+            const user = await loginAsGuest();
+            setUser(user);
+            setIsGuest(true);
+            navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
+        } catch (error) {
+            console.error('Guest login error:', error);
+            Alert.alert('Guest Login Failed', 'Could not log in as guest.');
+        } finally {
+            setLoadingGuest(false);
+        }
     };
 
     return (
@@ -120,14 +131,22 @@ const LoginScreen = () => {
                 <TouchableOpacity
                     style={styles.loginButton}
                     onPress={handleLogin}
-                    disabled={loading}
+                    disabled={loadingLogin}
                 >
-                    <Text style={styles.loginText}>{loading ? 'Logging in...' : 'Login'}</Text>
+                    <Text style={styles.loginText}>{loadingLogin ? 'Logging in...' : 'Login'}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={handleGuestLogin}>
+                <TouchableOpacity
+                    onPress={handleGuestLogin}
+                    disabled={loadingGuest}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}
+                >
+                    {loadingGuest && <ActivityIndicator size="small" color="#603F26" style={{ marginRight: 8 }} />}
                     <Text style={styles.guestText}>Log in as Guest</Text>
                 </TouchableOpacity>
+
+
+
 
             </KeyboardAvoidingView>
         </SafeAreaView>

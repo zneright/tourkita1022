@@ -19,6 +19,7 @@ import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
 import { useUser } from '../context/UserContext';
+import { BlurView } from 'expo-blur';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -81,22 +82,17 @@ const ProfileScreen = () => {
         );
     };
 
-    const renderMenuItem = (
-        label: string,
-        onPress?: () => void,
-        locked?: boolean,
-        danger?: boolean
-    ) => (
+    const renderMenuItem = (label: string, onPress?: () => void, danger?: boolean) => (
         <TouchableOpacity
             style={styles.menuItem}
-            onPress={locked ? undefined : onPress}
-            disabled={locked}
+            onPress={onPress}
+            disabled={isGuest}
         >
             <Text style={[styles.menuText, danger && styles.dangerText]}>{label}</Text>
             <Feather
-                name={locked ? 'lock' : danger ? 'chevron-right' : 'chevron-right'}
+                name={danger ? 'log-out' : 'chevron-right'}
                 size={20}
-                color={danger ? '#ef4444' : locked ? '#9ca3af' : '#493628'}
+                color={danger ? '#ef4444' : '#493628'}
             />
         </TouchableOpacity>
     );
@@ -110,24 +106,40 @@ const ProfileScreen = () => {
             </View>
 
             <View style={styles.menuContainer}>
-                {renderMenuItem('View Profile', () => navigation.navigate('ViewProfile'), isGuest)}
+                {renderMenuItem('View Profile', () => navigation.navigate('ViewProfile'))}
                 {renderMenuItem('Terms and Privacy', () => navigation.navigate('Terms'))}
-                {renderMenuItem('Change Password', () => navigation.navigate('ChangePassword'), isGuest)}
-                {renderMenuItem('Delete Account', () => navigation.navigate('DeleteAccount'), isGuest, true)}
+                {renderMenuItem('Change Password', () => navigation.navigate('ChangePassword'))}
+                {renderMenuItem('Delete Account', () => navigation.navigate('DeleteAccount'))}
+                {renderMenuItem('Log Out', handleLogOut, true)}
 
                 {isGuest && (
-                    <TouchableOpacity
-                        style={styles.signUpButton}
-                        onPress={() => navigation.navigate('SignUp')}
-                    >
-                        <Text style={styles.signUpText}>Sign Up to Unlock Features</Text>
-                    </TouchableOpacity>
+                    <>
+                        <BlurView
+                            intensity={90}
+                            tint="light"
+                            style={StyleSheet.absoluteFill}
+                            pointerEvents="none"
+                        />
+                        <View style={styles.overlayContent} pointerEvents="auto">
+                            <Text style={styles.modalTitle}>Sign Up to Unlock Features</Text>
+                            <Text style={styles.modalText}>
+                                Create an account to view your profile, change your password, and more!
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.signUpButton}
+                                onPress={() => navigation.navigate('SignUp')}
+                            >
+                                <Text style={styles.signUpText}>Sign Up</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.logOutButton, { marginTop: 10 }]}
+                                onPress={handleLogOut}
+                            >
+                                <Text style={styles.logOutText}>Log Out</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </>
                 )}
-
-                <TouchableOpacity style={styles.menuItem} onPress={handleLogOut}>
-                    <Text style={[styles.menuText, styles.dangerText]}>Log Out</Text>
-                    <Feather name="log-out" size={20} color="#ef4444" />
-                </TouchableOpacity>
             </View>
 
             <BottomFooter active="Profile" />
@@ -155,6 +167,8 @@ const styles = StyleSheet.create({
     menuContainer: {
         paddingHorizontal: 24,
         gap: 12,
+        position: 'relative',
+        justifyContent: 'center',
     },
     menuItem: {
         flexDirection: 'row',
@@ -164,6 +178,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 20,
         borderRadius: 12,
+        marginBottom: 12,
     },
     menuText: {
         fontSize: 16,
@@ -173,17 +188,48 @@ const styles = StyleSheet.create({
         color: 'red',
         fontWeight: '600',
     },
-    signUpButton: {
-        backgroundColor: '#fcd34d',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
+    overlayContent: {
+        position: 'absolute',
+        top: '40%',
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 16,
+        padding: 20,
         alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 10,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#493628',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalText: {
+        fontSize: 14,
+        color: '#6B5E5E',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    signUpButton: {
+        backgroundColor: '#4C372B',
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 8,
     },
     signUpText: {
-        color: '#493628',
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    logOutButton: {
+        backgroundColor: 'red',
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+    },
+    logOutText: {
+        color: '#fff',
         fontSize: 16,
         fontWeight: '600',
     },

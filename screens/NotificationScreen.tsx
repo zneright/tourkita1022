@@ -53,7 +53,6 @@ const NotificationScreen = () => {
 
     const auth = getAuth();
     const user = auth.currentUser;
-    const isGuest = !user;
 
     const userId = user?.uid || "guest";
     const userEmail = user?.email || "guest@example.com";
@@ -62,10 +61,6 @@ const NotificationScreen = () => {
 
 
     useEffect(() => {
-        if (isGuest) {
-            setLoading(false);
-            return;
-        }
         const userCreationTime = user?.metadata?.creationTime
             ? new Date(user.metadata.creationTime)
             : new Date(0);
@@ -140,9 +135,6 @@ const NotificationScreen = () => {
                     }
                 });
 
-
-
-
                 const filteredAdminData = adminData.filter(n => n.timestamp >= userCreationTime);
 
 
@@ -160,7 +152,7 @@ const NotificationScreen = () => {
         };
 
         fetchNotifications();
-    }, [isGuest, userId, userEmail]);
+    }, [userId, userEmail]);
 
 
     const toggleExpand = async (id: string) => {
@@ -201,127 +193,116 @@ const NotificationScreen = () => {
             <TopHeader title="Notifications" onSupportPress={() => navigation.navigate("Support")} />
 
             <View style={styles.contentWrapper}>
-                {isGuest ? (
-                    <View style={styles.centeredBox}>
-                        <Text style={styles.guestText}>Notifications are only available for registered users.</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate("SignUp")} style={styles.signupButton}>
-                            <Text style={styles.signupText}>Create a Free Account</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <>
-                        <ScrollView contentContainerStyle={styles.scrollContent}>
-                            {loading ? (
-                                <Text style={styles.centerText}>Loading notifications...</Text>
-                            ) : notifications.length === 0 ? (
-                                <Text style={styles.centerText}>No notifications found.</Text>
-                            ) : (
-                                notifications.map(item => (
-                                    <View
-                                        key={item.id + item.source}
-                                        style={[
-                                            styles.notificationCard,
-                                            !item.viewed && styles.unviewedCard,
-                                        ]}
-                                    >
-                                        <TouchableOpacity
-                                            onPress={() => toggleExpand(item.id)}
-                                            style={styles.notificationHeader}
-                                        >
-                                            {item.imageUrl ? (
-                                                <TouchableOpacity onPress={() => setModalImageUrl(item.imageUrl!)}>
-                                                    <Image source={{ uri: item.imageUrl }} style={styles.thumbnailImage} />
-                                                </TouchableOpacity>
-                                            ) : (
-                                                <View style={styles.iconWrapper}>{getIcon(item.category)}</View>
-
-                                            )}
-
-                                            <View style={{ flex: 1, marginLeft: 10 }}>
-                                                <Text
-                                                    style={[
-                                                        styles.notificationTitle,
-                                                        !item.viewed && { fontWeight: "bold" },
-                                                    ]}
-                                                >
-                                                    {item.title}
-                                                </Text>
-                                                <Text style={styles.datePosted}>
-                                                    Posted on: {item.timestamp.toLocaleDateString()} at {item.timestamp.toLocaleTimeString()}
-                                                </Text>
-                                            </View>
-                                        </TouchableOpacity>
-
-                                        {expandedId === item.id && (
-                                            <View style={styles.messageContainer}>
-                                                {item.context && item.contextType && (
-                                                    <Text style={styles.contextLine}>
-                                                        Feedback on {item.contextType}: {item.context}
-                                                    </Text>
-                                                )}
-                                                <Text style={styles.messageText}>{item.message}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                ))
-                            )}
-                        </ScrollView>
-
-                        {modalImageUrl && (
-                            <View style={styles.modalOverlay}>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    {loading ? (
+                        <Text style={styles.centerText}>Loading notifications...</Text>
+                    ) : notifications.length === 0 ? (
+                        <Text style={styles.centerText}>No notifications found.</Text>
+                    ) : (
+                        notifications.map(item => (
+                            <View
+                                key={item.id + item.source}
+                                style={[
+                                    styles.notificationCard,
+                                    !item.viewed && styles.unviewedCard,
+                                ]}
+                            >
                                 <TouchableOpacity
-                                    style={styles.modalBackdrop}
-                                    onPress={() => setModalImageUrl(null)}
-                                />
-                                <View style={styles.modalContent}>
-                                    <Image
-                                        source={{ uri: modalImageUrl }}
-                                        style={styles.modalImage}
-                                        resizeMode="contain"
-                                    />
+                                    onPress={() => toggleExpand(item.id)}
+                                    style={styles.notificationHeader}
+                                >
+                                    {item.imageUrl ? (
+                                        <TouchableOpacity onPress={() => setModalImageUrl(item.imageUrl!)}>
+                                            <Image source={{ uri: item.imageUrl }} style={styles.thumbnailImage} />
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={styles.iconWrapper}>{getIcon(item.category)}</View>
+                                    )}
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text
+                                            style={[
+                                                styles.notificationTitle,
+                                                !item.viewed && { fontWeight: "bold" },
+                                            ]}
+                                        >
+                                            {item.title}
+                                        </Text>
+                                        <Text style={styles.datePosted}>
+                                            Posted on: {item.timestamp.toLocaleDateString()} at {item.timestamp.toLocaleTimeString()}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
 
-                                    {notifications
-                                        .filter((n) => n.imageUrl === modalImageUrl)
-                                        .map((n) => (
-                                            <View key={n.id} style={styles.modalMessageBox}>
-                                                <Text style={styles.modalTitle}>{n.title}</Text>
-                                                <Text style={styles.modalTimestamp}>
-                                                    {n.timestamp.toLocaleString()}
-                                                </Text>
-                                                <Text style={styles.modalMessage}>
-                                                    {n.message.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-                                                        part.match(/^https?:\/\//) ? (
-                                                            <Text
-                                                                key={i}
-                                                                style={styles.modalLink}
-                                                                onPress={() => Linking.openURL(part)}
-                                                            >
-                                                                {part}
-                                                            </Text>
-                                                        ) : (
-                                                            <Text key={i}>{part}</Text>
-                                                        )
-                                                    )}
-                                                </Text>
-                                            </View>
-                                        ))}
-
-                                    <TouchableOpacity
-                                        onPress={() => setModalImageUrl(null)}
-                                        style={styles.okButton}
-                                    >
-                                        <Text style={styles.okText}>OK</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                {expandedId === item.id && (
+                                    <View style={styles.messageContainer}>
+                                        {item.context && item.contextType && (
+                                            <Text style={styles.contextLine}>
+                                                Feedback on {item.contextType}: {item.context}
+                                            </Text>
+                                        )}
+                                        <Text style={styles.messageText}>{item.message}</Text>
+                                    </View>
+                                )}
                             </View>
-                        )}
+                        ))
+                    )}
+                </ScrollView>
 
-                    </>
-                )}
+                <>
+                    {modalImageUrl && (
+                        <View style={styles.modalOverlay}>
+                            <TouchableOpacity
+                                style={styles.modalBackdrop}
+                                onPress={() => setModalImageUrl(null)}
+                            />
+                            <View style={styles.modalContent}>
+                                <Image
+                                    source={{ uri: modalImageUrl }}
+                                    style={styles.modalImage}
+                                    resizeMode="contain"
+                                />
+
+                                {notifications
+                                    .filter((n) => n.imageUrl === modalImageUrl)
+                                    .map((n) => (
+                                        <View key={n.id} style={styles.modalMessageBox}>
+                                            <Text style={styles.modalTitle}>{n.title}</Text>
+                                            <Text style={styles.modalTimestamp}>
+                                                {n.timestamp.toLocaleString()}
+                                            </Text>
+                                            <Text style={styles.modalMessage}>
+                                                {n.message.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                                                    part.match(/^https?:\/\//) ? (
+                                                        <Text
+                                                            key={i}
+                                                            style={styles.modalLink}
+                                                            onPress={() => Linking.openURL(part)}
+                                                        >
+                                                            {part}
+                                                        </Text>
+                                                    ) : (
+                                                        <Text key={i}>{part}</Text>
+                                                    )
+                                                )}
+                                            </Text>
+                                        </View>
+                                    ))}
+
+                                <TouchableOpacity
+                                    onPress={() => setModalImageUrl(null)}
+                                    style={styles.okButton}
+                                >
+                                    <Text style={styles.okText}>OK</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
+                </>
             </View>
 
             <BottomFooter active="Notification" />
-        </SafeAreaView>
+        </SafeAreaView >
     );
 
 
@@ -345,30 +326,6 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginTop: 20,
         color: "#666",
-    },
-    guestText: {
-        textAlign: "center",
-        fontSize: 16,
-        color: "#555",
-        paddingHorizontal: 20,
-        marginBottom: 16,
-    },
-    centeredBox: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 24,
-    },
-    signupButton: {
-        backgroundColor: "#fcd34d",
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 10,
-    },
-    signupText: {
-        color: "#493628",
-        fontWeight: "bold",
-        fontSize: 16,
     },
     notificationCard: {
         backgroundColor: "#fff",
@@ -511,6 +468,33 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginRight: 10,
+    },
+    overlayContent: {
+        position: 'absolute',
+        top: '40%',
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+    },
+    modalText: {
+        fontSize: 14,
+        color: '#6B5E5E',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    signUpButton: {
+        backgroundColor: '#4C372B',
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+    },
+    signUpText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
 
 });

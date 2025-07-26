@@ -22,6 +22,7 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import SplashScreen from "../screens/SplashScreen";
 import DeleteAccountScreen from '../screens/DeleteAccountScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AppNavigator = () => {
     return (

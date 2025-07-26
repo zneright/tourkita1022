@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import TopHeader from "../components/TopHeader";
+import Feather from 'react-native-vector-icons/Feather';
 
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,13 +19,16 @@ import BottomFooter from "../components/BottomFooter";
 
 import { useUser } from "../context/UserContext";
 
-
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
 
 const SupportScreen = () => {
-
     const { isGuest } = useUser();
+    const navigation = useNavigation<NavigationProp>();
+
+    const handlePress = (label: string) => {
+        Alert.alert(`${label} pressed`);
+    };
+
     const SupportRow = ({
         label,
         subtitle,
@@ -45,19 +49,24 @@ const SupportScreen = () => {
         >
             <Icon name={icon} size={32} color="#4C372B" style={{ marginRight: 12 }} />
             <View>
-                <Text style={styles.boxLabel}>{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                    <Text style={styles.boxLabel}>{label}</Text>
+                    {disabled && (
+                        <Feather
+                            name="lock"
+                            size={20}
+                            color="#4C372B"
+                            style={{ marginLeft: 4 }}
+                        />
+                    )}
+                </View>
                 <Text style={styles.boxSubtitle}>{subtitle}</Text>
             </View>
+
         </TouchableOpacity>
     );
 
-    const navigation = useNavigation<NavigationProp>();
-    const handlePress = (label: string) => {
-        Alert.alert(`${label} pressed`);
-    };
-
     return (
-
         <SafeAreaView style={styles.container}>
             <TopHeader title="Support" />
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -84,13 +93,13 @@ const SupportScreen = () => {
                 />
                 {isGuest ? (
                     <SupportRow
-                        label="Feedback (Locked)"
+                        label="Feedback"
                         subtitle="Please log in to submit feedback"
-                        icon="lock"
+                        icon="message-text-outline"
                         onPress={() =>
                             Alert.alert("Access Denied", "Please log in to use the Feedback feature.")
                         }
-                        disabled={true}
+                        disabled
                     />
                 ) : (
                     <SupportRow
@@ -100,11 +109,9 @@ const SupportScreen = () => {
                         onPress={() => navigation.navigate("Feedback")}
                     />
                 )}
-
-
             </ScrollView>
             <BottomFooter active="" />
-        </SafeAreaView >
+        </SafeAreaView>
     );
 };
 
@@ -126,26 +133,6 @@ const SupportBox = ({
     </TouchableOpacity>
 );
 
-const SupportRow = ({
-    label,
-    subtitle,
-    icon,
-    onPress,
-}: {
-    label: string;
-    subtitle: string;
-    icon: string;
-    onPress: () => void;
-}) => (
-    <TouchableOpacity style={styles.rowBox} onPress={onPress}>
-        <Icon name={icon} size={32} color="#4C372B" style={{ marginRight: 12 }} />
-        <View>
-            <Text style={styles.boxLabel}>{label}</Text>
-            <Text style={styles.boxSubtitle}>{subtitle}</Text>
-        </View>
-    </TouchableOpacity>
-);
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -155,12 +142,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 30,
         paddingTop: 20,
-    },
-
-    headerText: {
-        color: "#FFFFFF",
-        fontSize: 22,
-        fontWeight: "bold",
     },
     row: {
         flexDirection: "row",
