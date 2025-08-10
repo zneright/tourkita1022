@@ -27,6 +27,7 @@ import TopHeader from "../components/TopHeader";
 import BottomFooter from "../components/BottomFooter";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Notification">;
 
 type NotificationSource = "notifications" | "adminMessages";
@@ -50,6 +51,7 @@ const NotificationScreen = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
 
     const auth = getAuth();
     const user = auth.currentUser;
@@ -57,14 +59,10 @@ const NotificationScreen = () => {
     const userId = user?.uid || "guest";
     const userEmail = user?.email || "guest@example.com";
 
-    const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
-
-
     useEffect(() => {
         const userCreationTime = user?.metadata?.creationTime
             ? new Date(user.metadata.creationTime)
             : new Date(0);
-
 
         const fetchNotifications = async () => {
             try {
@@ -79,39 +77,37 @@ const NotificationScreen = () => {
                     getDocs(query(collection(db, "adminMessages"), where("to", "==", userEmail))),
                 ]);
 
-                const notifData: Notification[] = notifSnap.docs
-                    .map(docSnap => {
-                        const data = docSnap.data();
-                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                        return {
-                            id: docSnap.id,
-                            title: data.title || "Untitled",
-                            message: data.message || "No message provided.",
-                            timestamp: data.timestamp?.toDate?.() ?? new Date(),
-                            category: data.category || "info",
-                            viewed: viewedBy.includes(userId),
-                            source: "notifications",
-                            imageUrl: data.imageUrl || "",
+                const notifData: Notification[] = notifSnap.docs.map(docSnap => {
+                    const data = docSnap.data();
+                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                    return {
+                        id: docSnap.id,
+                        title: data.title || "Untitled",
+                        message: data.message || "No message provided.",
+                        timestamp: data.timestamp?.toDate?.() ?? new Date(),
+                        category: data.category || "info",
+                        viewed: viewedBy.includes(userId),
+                        source: "notifications",
+                        imageUrl: data.imageUrl || "",
+                    };
+                });
 
-                        };
-                    });
+                const adminData: Notification[] = adminSnap.docs.map(docSnap => {
+                    const data = docSnap.data();
+                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                    return {
+                        id: docSnap.id,
+                        title: "Admin Response to Your Feedback",
+                        message: data.message || "No reply message.",
+                        timestamp: data.sentAt?.toDate?.() ?? new Date(),
+                        category: "feedback",
+                        viewed: viewedBy.includes(userId),
+                        source: "adminMessages",
+                        context: data.context || "",
+                        contextType: data.contextType || "",
+                    };
+                });
 
-                const adminData: Notification[] = adminSnap.docs
-                    .map(docSnap => {
-                        const data = docSnap.data();
-                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                        return {
-                            id: docSnap.id,
-                            title: "Admin Response to Your Feedback",
-                            message: data.message || "No reply message.",
-                            timestamp: data.sentAt?.toDate?.() ?? new Date(),
-                            category: "feedback",
-                            viewed: viewedBy.includes(userId),
-                            source: "adminMessages",
-                            context: data.context || "",
-                            contextType: data.contextType || "",
-                        };
-                    });
                 const filteredNotifData = notifData.filter(n => {
                     const isRecent = n.timestamp >= userCreationTime;
                     const isUnseenWelcome =
@@ -122,6 +118,7 @@ const NotificationScreen = () => {
                     return isRecent || isUnseenWelcome;
                 });
 
+                // Mark welcome notifications as viewed
                 notifData.forEach(async (n) => {
                     if (
                         n.title?.toLowerCase().includes("welcome") &&
@@ -137,10 +134,9 @@ const NotificationScreen = () => {
 
                 const filteredAdminData = adminData.filter(n => n.timestamp >= userCreationTime);
 
-
-                let combined = [...filteredNotifData, ...filteredAdminData];
-
-                combined.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+                const combined = [...filteredNotifData, ...filteredAdminData].sort(
+                    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+                );
 
                 setNotifications(combined);
                 await AsyncStorage.setItem("cachedNotifications", JSON.stringify(combined));
@@ -153,7 +149,6 @@ const NotificationScreen = () => {
 
         fetchNotifications();
     }, [userId, userEmail]);
-
 
     const toggleExpand = async (id: string) => {
         const notif = notifications.find(n => n.id === id);
@@ -248,64 +243,59 @@ const NotificationScreen = () => {
                     )}
                 </ScrollView>
 
-                <>
-                    {modalImageUrl && (
-                        <View style={styles.modalOverlay}>
-                            <TouchableOpacity
-                                style={styles.modalBackdrop}
-                                onPress={() => setModalImageUrl(null)}
+                {modalImageUrl && (
+                    <View style={styles.modalOverlay}>
+                        <TouchableOpacity
+                            style={styles.modalBackdrop}
+                            onPress={() => setModalImageUrl(null)}
+                        />
+                        <View style={styles.modalContent}>
+                            <Image
+                                source={{ uri: modalImageUrl }}
+                                style={styles.modalImage}
+                                resizeMode="contain"
                             />
-                            <View style={styles.modalContent}>
-                                <Image
-                                    source={{ uri: modalImageUrl }}
-                                    style={styles.modalImage}
-                                    resizeMode="contain"
-                                />
 
-                                {notifications
-                                    .filter((n) => n.imageUrl === modalImageUrl)
-                                    .map((n) => (
-                                        <View key={n.id} style={styles.modalMessageBox}>
-                                            <Text style={styles.modalTitle}>{n.title}</Text>
-                                            <Text style={styles.modalTimestamp}>
-                                                {n.timestamp.toLocaleString()}
-                                            </Text>
-                                            <Text style={styles.modalMessage}>
-                                                {n.message.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-                                                    part.match(/^https?:\/\//) ? (
-                                                        <Text
-                                                            key={i}
-                                                            style={styles.modalLink}
-                                                            onPress={() => Linking.openURL(part)}
-                                                        >
-                                                            {part}
-                                                        </Text>
-                                                    ) : (
-                                                        <Text key={i}>{part}</Text>
-                                                    )
-                                                )}
-                                            </Text>
-                                        </View>
-                                    ))}
+                            {notifications
+                                .filter((n) => n.imageUrl === modalImageUrl)
+                                .map((n) => (
+                                    <View key={n.id} style={styles.modalMessageBox}>
+                                        <Text style={styles.modalTitle}>{n.title}</Text>
+                                        <Text style={styles.modalTimestamp}>
+                                            {n.timestamp.toLocaleString()}
+                                        </Text>
+                                        <Text style={styles.modalMessage}>
+                                            {n.message.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                                                part.match(/^https?:\/\//) ? (
+                                                    <Text
+                                                        key={i}
+                                                        style={styles.modalLink}
+                                                        onPress={() => Linking.openURL(part)}
+                                                    >
+                                                        {part}
+                                                    </Text>
+                                                ) : (
+                                                    <Text key={i}>{part}</Text>
+                                                )
+                                            )}
+                                        </Text>
+                                    </View>
+                                ))}
 
-                                <TouchableOpacity
-                                    onPress={() => setModalImageUrl(null)}
-                                    style={styles.okButton}
-                                >
-                                    <Text style={styles.okText}>OK</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity
+                                onPress={() => setModalImageUrl(null)}
+                                style={styles.okButton}
+                            >
+                                <Text style={styles.okText}>OK</Text>
+                            </TouchableOpacity>
                         </View>
-                    )}
-
-                </>
+                    </View>
+                )}
             </View>
 
             <BottomFooter active="Notification" />
-        </SafeAreaView >
+        </SafeAreaView>
     );
-
-
 };
 
 export default NotificationScreen;
@@ -347,7 +337,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-
     notificationTitle: {
         fontSize: 16,
         fontWeight: "600",
@@ -380,7 +369,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginRight: 10,
     },
-
     modalOverlay: {
         position: "absolute",
         top: 0,
@@ -392,11 +380,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         zIndex: 999,
     },
-
     modalBackdrop: {
         ...StyleSheet.absoluteFillObject,
     },
-
     modalContent: {
         backgroundColor: "#fff",
         paddingVertical: 20,
@@ -406,7 +392,6 @@ const styles = StyleSheet.create({
         maxHeight: "85%",
         width: "90%",
     },
-
     modalImage: {
         width: "100%",
         height: 250,
@@ -414,15 +399,12 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         backgroundColor: "#f0f0f0",
     },
-
-
     okButton: {
         backgroundColor: "#007AFF",
         paddingHorizontal: 24,
         paddingVertical: 10,
         borderRadius: 8,
     },
-
     okText: {
         color: "#fff",
         fontWeight: "bold",
@@ -432,7 +414,6 @@ const styles = StyleSheet.create({
         width: "100%",
         marginBottom: 20,
     },
-
     modalTitle: {
         fontSize: 18,
         fontWeight: "bold",
@@ -440,26 +421,22 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         textAlign: "center",
     },
-
     modalTimestamp: {
         fontSize: 12,
         color: "#888",
         textAlign: "center",
         marginBottom: 10,
     },
-
     modalMessage: {
         fontSize: 14,
         color: "#333",
         textAlign: "center",
         lineHeight: 20,
     },
-
     modalLink: {
         color: "#007AFF",
         textDecorationLine: "underline",
     },
-
     iconWrapper: {
         width: 50,
         height: 50,
@@ -469,32 +446,4 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginRight: 10,
     },
-    overlayContent: {
-        position: 'absolute',
-        top: '40%',
-        left: 20,
-        right: 20,
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderRadius: 16,
-        padding: 20,
-        alignItems: 'center',
-    },
-    modalText: {
-        fontSize: 14,
-        color: '#6B5E5E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    signUpButton: {
-        backgroundColor: '#4C372B',
-        paddingVertical: 10,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-    },
-    signUpText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-
 });

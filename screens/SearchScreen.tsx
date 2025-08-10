@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
-    SafeAreaView, ScrollView, View, Text, TextInput,
-    Image, StyleSheet, TouchableOpacity, Modal, ActivityIndicator
+    SafeAreaView,
+    ScrollView,
+    View,
+    Text,
+    TextInput,
+    Image,
+    StyleSheet,
+    TouchableOpacity,
+    Modal,
+    ActivityIndicator,
 } from "react-native";
 import TopHeader from "../components/TopHeader";
 import BottomFooter from "../components/BottomFooter";
@@ -11,8 +19,10 @@ import type { RootStackParamList } from "../Navigation/types";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "../firebase";
 import { useLandmark } from "../provider/LandmarkProvider";
+import EventCalendar from "../components/EventCalendar";
 
 type Marker = {
+    id: string;
     name: string;
     image: string;
     category: string;
@@ -21,29 +31,12 @@ type Marker = {
     openingHours?: Record<string, { open: string; close: string; closed: boolean }>;
 };
 
-const getOpenStatus = (openingHours?: Marker["openingHours"]) => {
-    if (!openingHours) return "Opening hours unavailable";
-
-    const now = new Date();
-    const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-    const today = openingHours[dayName];
-
-    if (!today || today.closed) return "Closed today";
-
-    const [openHour, openMinute] = today.open.split(":").map(Number);
-    const [closeHour, closeMinute] = today.close.split(":").map(Number);
-
-    const openTime = new Date();
-    openTime.setHours(openHour, openMinute, 0, 0);
-
-    const closeTime = new Date();
-    closeTime.setHours(closeHour, closeMinute, 0, 0);
-
-    if (now >= openTime && now <= closeTime) {
-        return `Open now until ${today.close}`;
-    } else {
-        return "Closed now";
-    }
+type Event = {
+    date: string;
+    time: string;
+    endTime: string;
+    locationId: string;
+    openToPublic: boolean;
 };
 
 const SearchScreen = () => {
@@ -54,6 +47,7 @@ const SearchScreen = () => {
     const [allMarkers, setAllMarkers] = useState<Marker[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+    const [events, setEvents] = useState<Event[]>([]);
 
     const { setSelectedLandmark, loadDirection } = useLandmark();
 
@@ -63,15 +57,70 @@ const SearchScreen = () => {
         setModalVisible(true);
     };
 
+    // close ba?!
+    const isClosedDueToPrivateEvent = (markerId: string): boolean => {
+        const now = new Date();
+        const relevantEvents = events.filter((event) => {
+            if (event.locationId !== markerId) return false;
+            if (event.openToPublic) return false;
+
+            const eventDate = new Date(event.date);
+            if (
+                eventDate.getFullYear() !== now.getFullYear() ||
+                eventDate.getMonth() !== now.getMonth() ||
+                eventDate.getDate() !== now.getDate()
+            )
+                return false;
+
+            const [startHour, startMinute] = event.time.split(":").map(Number);
+            const [endHour, endMinute] = event.endTime.split(":").map(Number);
+
+            const eventStart = new Date(eventDate);
+            eventStart.setHours(startHour, startMinute, 0, 0);
+
+            const eventEnd = new Date(eventDate);
+            eventEnd.setHours(endHour, endMinute, 0, 0);
+
+            return now >= eventStart && now <= eventEnd;
+        });
+        return relevantEvents.length > 0;
+    };
+
+    // open ba?!
+    const getOpenStatus = (marker: Marker): string => {
+        if (isClosedDueToPrivateEvent(marker.id)) return "Closed due to private event";
+        if (!marker.openingHours) return "Opening hours unavailable";
+
+        const now = new Date();
+        const dayName = now
+            .toLocaleDateString("en-US", { weekday: "long" })
+            .toLowerCase();
+        const today = marker.openingHours[dayName];
+        if (!today || today.closed) return "Closed today";
+
+        const [openHour, openMinute] = today.open.split(":").map(Number);
+        const [closeHour, closeMinute] = today.close.split(":").map(Number);
+
+        const openTime = new Date();
+        openTime.setHours(openHour, openMinute, 0, 0);
+        const closeTime = new Date();
+        closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+        if (now >= openTime && now <= closeTime) return `Open now until ${today.close}`;
+        return "Closed now";
+    };
+
+
     useEffect(() => {
-        const fetchMarkers = async () => {
+        const fetchMarkersAndEvents = async () => {
             setLoading(true);
             try {
-                const q = query(collection(db, "markers"));
-                const snapshot = await getDocs(q);
-                const data = snapshot.docs.map(doc => {
+                const qMarkers = query(collection(db, "markers"));
+                const snapshotMarkers = await getDocs(qMarkers);
+                const markersData = snapshotMarkers.docs.map((doc) => {
                     const d = doc.data();
                     return {
+                        id: doc.id,
                         name: d.name,
                         image: d.image?.trim() || "https://via.placeholder.com/150",
                         category: d.categoryOption || d.category || "Others",
@@ -80,39 +129,65 @@ const SearchScreen = () => {
                         openingHours: d.openingHours || {},
                     };
                 });
-                setAllMarkers(data);
+
+                const qEvents = query(collection(db, "events"));
+                const snapshotEvents = await getDocs(qEvents);
+                const eventsData = snapshotEvents.docs.map((doc) => {
+                    const d = doc.data();
+                    return {
+                        date: d.date,
+                        time: d.time,
+                        endTime: d.endTime,
+                        locationId: d.locationId,
+                        openToPublic: d.openToPublic,
+                    };
+                });
+
+                setAllMarkers(markersData);
+                setEvents(eventsData);
             } catch (err) {
-                console.error("Error fetching markers:", err);
+                console.error("Error fetching markers/events:", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchMarkers();
+
+        fetchMarkersAndEvents();
     }, []);
 
-    const filteredMarkers = allMarkers.filter(marker =>
-        marker.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        marker.category.toLowerCase().includes(searchText.toLowerCase())
+    // searcg filter markers
+    const filteredMarkers = allMarkers.filter(
+        (marker) =>
+            marker.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            marker.category.toLowerCase().includes(searchText.toLowerCase())
     );
 
+    // Get marers by category
     const groupedByCategory = (category: string) =>
-        allMarkers.filter(m => m.category.toLowerCase() === category.toLowerCase());
+        allMarkers.filter((m) => m.category.toLowerCase() === category.toLowerCase());
 
     const renderSection = (title: string, items: Marker[]) => {
         if (items.length === 0) return null;
         return (
             <>
                 <Text style={styles.sectionTitle}>{title}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.horizontalScroll}
+                >
                     {items.map((item, index) => (
                         <TouchableOpacity
                             key={index}
-                            style={styles.cardLarge}
+                            style={[
+                                styles.cardLarge,
+                                { marginLeft: index === 0 ? 22 : 0 },
+                            ]}
                             onPress={() => handleImageTap(item)}
                         >
                             <Image source={{ uri: item.image }} style={styles.cardImageLarge} />
                             <Text style={styles.cardLabel}>{item.name}</Text>
-                            <Text style={styles.statusLabel}>{getOpenStatus(item.openingHours)}</Text>
+                            <Text style={styles.statusLabel}>{getOpenStatus(item)}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -123,7 +198,11 @@ const SearchScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Search" onSupportPress={() => navigation.navigate("Support")} />
-            <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={styles.scrollContainer}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 90 }}
+            >
                 <View style={styles.searchWrapper}>
                     <Text style={styles.searchLabel}>Search any keyword...</Text>
                     <View style={styles.searchInputContainer}>
@@ -141,7 +220,11 @@ const SearchScreen = () => {
                     </View>
                 </View>
 
-                {loading && <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />}
+                {loading && (
+                    <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />
+                )}
+
+                {searchText.trim() === "" && <EventCalendar />}
 
                 {searchText.trim() !== "" ? (
                     filteredMarkers.length > 0 ? (
@@ -164,21 +247,32 @@ const SearchScreen = () => {
             <Modal visible={modalVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
-                        <Image source={{ uri: modalImage }} style={styles.modalImage} resizeMode="contain" />
+                        <Image
+                            source={{ uri: modalImage }}
+                            style={styles.modalImage}
+                            resizeMode="contain"
+                        />
                         {selectedMarker && (
                             <>
-                                <Text style={{ color: "#fff", fontSize: 18, marginVertical: 10, textAlign: "center" }}>
+                                <Text
+                                    style={{
+                                        color: "#fff",
+                                        fontSize: 18,
+                                        marginVertical: 10,
+                                        textAlign: "center",
+                                    }}
+                                >
                                     {selectedMarker.name}
                                 </Text>
                                 <Text style={{ color: "#ccc", fontSize: 14, textAlign: "center" }}>
-                                    {getOpenStatus(selectedMarker.openingHours)}
+                                    {getOpenStatus(selectedMarker)}
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.navigateButton}
                                     onPress={() => {
                                         setModalVisible(false);
                                         setSelectedLandmark(selectedMarker);
-                                        loadDirection(); // optional preload
+                                        loadDirection();
                                         navigation.navigate("Map", {
                                             latitude: selectedMarker.latitude,
                                             longitude: selectedMarker.longitude,
@@ -236,10 +330,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     horizontalScroll: {
-        paddingLeft: 22,
         marginBottom: 24,
     },
-    cardLarge: { width: 209, marginRight: 16 },
+    cardLarge: {
+        width: 209,
+        marginRight: 16,
+    },
     cardImageLarge: {
         width: "100%",
         height: 160,

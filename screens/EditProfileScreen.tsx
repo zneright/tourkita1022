@@ -18,7 +18,7 @@ import {
     reauthenticateWithCredential,
     EmailAuthProvider,
 } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -52,11 +52,13 @@ const EditProfileScreen = () => {
                 const currentUser = auth.currentUser;
                 if (!currentUser) return;
 
-                const userRef = doc(db, "users", currentUser.uid);
-                const userSnap = await getDoc(userRef);
 
-                if (userSnap.exists()) {
-                    const data = userSnap.data();
+                const q = query(collection(db, "users"), where("email", "==", currentUser.email));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    const data = userDoc.data();
                     setFormData({
                         firstName: data.firstName || "",
                         middleInitial: data.middleInitial || "",
@@ -66,6 +68,7 @@ const EditProfileScreen = () => {
                         userType: data.userType || "",
                         gender: data.gender || "",
                     });
+
                 }
             } catch (error) {
                 console.error("Failed to fetch user data:", error);

@@ -18,13 +18,13 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
-import { generateCustomUid } from "../utils/customUid";
+import { Ionicons } from '@expo/vector-icons'; // For eye icon, install expo/vector-icons if not installed
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-
 const SignUpScreen = () => {
     const navigation = useNavigation<NavigationProp>();
+    // Fields state
     const [lastName, setLastName] = useState("");
     const [middleInitial, setMiddleInitial] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -37,6 +37,63 @@ const SignUpScreen = () => {
     const [email, setEmail] = useState("");
     const [isChecked, setIsChecked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Visibility toggles for passwords
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Validation errors - track which fields have error
+    const [errors, setErrors] = useState<{
+        lastName?: boolean;
+        firstName?: boolean;
+        age?: boolean;
+        contactNumber?: boolean;
+        password?: boolean;
+        confirmPassword?: boolean;
+        email?: boolean;
+        terms?: boolean;
+    }>({});
+
+    // Remove error on input change
+    const onChangeField = (field: keyof typeof errors, value: string) => {
+        // Update corresponding value and remove error for that field
+        switch (field) {
+            case "lastName":
+                setLastName(value);
+                break;
+            case "firstName":
+                setFirstName(value);
+                break;
+            case "age":
+                setAge(value);
+                break;
+            case "contactNumber":
+                setContactNumber(value);
+                break;
+            case "password":
+                setPassword(value);
+                break;
+            case "confirmPassword":
+                setConfirmPassword(value);
+                break;
+            case "email":
+                setEmail(value);
+                break;
+        }
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: false }));
+        }
+    };
+
+    // Checkbox special case
+    const onToggleCheckbox = () => {
+        setIsChecked(prev => {
+            if (errors.terms) {
+                setErrors(prevErrors => ({ ...prevErrors, terms: false }));
+            }
+            return !prev;
+        });
+    };
 
     const generateCustomUid = (): string => {
         const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
@@ -53,30 +110,31 @@ const SignUpScreen = () => {
     }, []);
 
     const handleNext = async () => {
-        if (!isChecked) {
-            Alert.alert("Please agree to the terms and privacy policy.");
-            return;
-        }
+        // Validate all required fields & rules
+        let newErrors: typeof errors = {};
 
-        if (password !== confirmPassword) {
-            Alert.alert("Passwords do not match.");
-            return;
-        }
+        if (!lastName.trim()) newErrors.lastName = true;
+        if (!firstName.trim()) newErrors.firstName = true;
 
-        if (!age || isNaN(Number(age)) || Number(age) <= 0) {
-            Alert.alert("Please enter a valid age.");
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            Alert.alert("Please enter a valid email address.");
-            return;
-        }
+        if (!age || isNaN(Number(age)) || Number(age) <= 0) newErrors.age = true;
 
         const contactRegex = /^09\d{9}$/;
-        if (!contactRegex.test(contactNumber)) {
-            Alert.alert("Please enter a valid 11-digit PH contact number starting with 09.");
+        if (!contactRegex.test(contactNumber)) newErrors.contactNumber = true;
+
+        // Password validation: min 7 chars, at least one letter and one number
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{7,}$/;
+        if (!passwordRegex.test(password)) newErrors.password = true;
+
+        if (password !== confirmPassword || !confirmPassword) newErrors.confirmPassword = true;
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) newErrors.email = true;
+
+        if (!isChecked) newErrors.terms = true;
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            Alert.alert("Please correct the highlighted fields.");
             return;
         }
 
@@ -110,6 +168,7 @@ const SignUpScreen = () => {
         }
     };
 
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -130,16 +189,28 @@ const SignUpScreen = () => {
                     <View style={styles.row}>
                         <View style={styles.column}>
                             <Text style={styles.label}>Last Name</Text>
-                            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
+                            <TextInput
+                                style={[styles.input, errors.lastName && styles.errorInput]}
+                                value={lastName}
+                                onChangeText={(val) => onChangeField("lastName", val)}
+                            />
                         </View>
                         <View style={styles.column}>
                             <Text style={styles.label}>M.I.(Optional)</Text>
-                            <TextInput style={styles.input} value={middleInitial} onChangeText={setMiddleInitial} />
+                            <TextInput
+                                style={styles.input}
+                                value={middleInitial}
+                                onChangeText={setMiddleInitial}
+                            />
                         </View>
                     </View>
 
                     <Text style={styles.label}>First Name</Text>
-                    <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} />
+                    <TextInput
+                        style={[styles.input, errors.firstName && styles.errorInput]}
+                        value={firstName}
+                        onChangeText={(val) => onChangeField("firstName", val)}
+                    />
 
                     <View style={styles.row}>
                         <View style={styles.column}>
@@ -168,52 +239,64 @@ const SignUpScreen = () => {
                         <View style={styles.column}>
                             <Text style={styles.label}>Age</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, errors.age && styles.errorInput]}
                                 keyboardType="numeric"
                                 value={age}
-                                onChangeText={setAge}
+                                onChangeText={(val) => onChangeField("age", val)}
                             />
                         </View>
                         <View style={styles.column}>
                             <Text style={styles.label}>Contact Number</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, errors.contactNumber && styles.errorInput]}
                                 keyboardType="phone-pad"
                                 value={contactNumber}
-                                onChangeText={setContactNumber}
+                                onChangeText={(val) => onChangeField("contactNumber", val)}
                             />
                         </View>
                     </View>
 
                     <Text style={styles.label}>Password</Text>
-                    <TextInput
-                        style={styles.input}
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={[styles.input, errors.password && styles.errorInput, { flex: 1 }]}
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={(val) => onChangeField("password", val)}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(prev => !prev)} style={styles.eyeIcon}>
+                            <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#603F26" />
+                        </TouchableOpacity>
+                    </View>
 
                     <Text style={styles.label}>Confirm Password</Text>
-                    <TextInput
-                        style={styles.input}
-                        secureTextEntry
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={[styles.input, errors.confirmPassword && styles.errorInput, { flex: 1 }]}
+                            secureTextEntry={!showConfirmPassword}
+                            value={confirmPassword}
+                            onChangeText={(val) => onChangeField("confirmPassword", val)}
+                        />
+                        <TouchableOpacity onPress={() => setShowConfirmPassword(prev => !prev)} style={styles.eyeIcon}>
+                            <Ionicons name={showConfirmPassword ? "eye" : "eye-off"} size={24} color="#603F26" />
+                        </TouchableOpacity>
+                    </View>
 
                     <Text style={styles.label}>Email</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, errors.email && styles.errorInput]}
                         keyboardType="email-address"
                         value={email}
-                        onChangeText={setEmail}
+                        onChangeText={(val) => onChangeField("email", val)}
+                        autoCapitalize="none"
                     />
 
                     <View style={styles.checkboxContainer}>
                         <Checkbox
                             value={isChecked}
-                            onValueChange={setIsChecked}
+                            onValueChange={onToggleCheckbox}
                             color={isChecked ? "#603F26" : undefined}
+                            style={errors.terms ? styles.errorCheckbox : undefined}
                         />
                         <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
                             <Text style={styles.termsText}> Term and privacy policy</Text>
@@ -277,6 +360,12 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         paddingLeft: 10,
         marginBottom: 10,
+        borderWidth: 1,
+        borderColor: "#F5F5F5",
+    },
+    errorInput: {
+        borderColor: "red",
+        backgroundColor: "#fff0f0",
     },
     row: {
         flexDirection: "row",
@@ -295,6 +384,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 20,
     },
+    errorCheckbox: {
+        borderColor: "red",
+        borderWidth: 1,
+        borderRadius: 3,
+    },
     termsText: {
         color: "#603F26",
         textDecorationLine: "underline",
@@ -309,6 +403,36 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "600",
+    },
+    passwordContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    passwordInputWrapper: {
+        position: "relative",
+        marginBottom: 10,
+        justifyContent: "center",
+    },
+
+    passwordInput: {
+        backgroundColor: "#F5F5F5",
+        height: 40,
+        borderRadius: 5,
+        paddingLeft: 10,
+        paddingRight: 40,
+        borderWidth: 1,
+        borderColor: "#F5F5F5",
+    },
+
+    eyeIcon: {
+        position: "absolute",
+        right: 10,
+        height: 40,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 5,
+        top: 0,
     },
 });
 

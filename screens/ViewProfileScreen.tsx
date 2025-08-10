@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Maps'>;
@@ -27,24 +27,23 @@ export default function ViewProfileScreen() {
     const [userData, setUserData] = useState<any>(null);
 
     useEffect(() => {
+
         const fetchUserData = async () => {
             try {
-                // Try to get cached user data
                 const cached = await AsyncStorage.getItem('cachedUserData');
                 if (cached) {
                     setUserData(JSON.parse(cached));
-                    setLoading(false); // show cached data immediately
+                    setLoading(false);
                 }
 
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
                 if (!currentUser) return;
 
-                const userRef = doc(db, 'users', currentUser.uid);
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists()) {
-                    const data = userSnap.data();
+                const q = query(collection(db, 'users'), where('email', '==', currentUser.email));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const data = querySnapshot.docs[0].data();
                     setUserData(data);
                     await AsyncStorage.setItem('cachedUserData', JSON.stringify(data));
                 }

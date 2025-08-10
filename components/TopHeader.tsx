@@ -1,20 +1,37 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 interface TopHeaderProps {
     title: string;
     onSupportPress?: () => void;
+    showBackButton?: boolean;
 }
 
-export default function TopHeader({ title, onSupportPress }: TopHeaderProps) {
+export default function TopHeader({ title, onSupportPress, showBackButton = false }: TopHeaderProps) {
+    const navigation = useNavigation();
+
     return (
         <View style={styles.header}>
-            <Text style={styles.headerText}>{title}</Text>
-            {onSupportPress && (
+            {showBackButton ? (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#D6C0B3" />
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.placeholder} />
+            )}
+
+            <Text style={styles.headerText} numberOfLines={1}>
+                {title}
+            </Text>
+
+            {onSupportPress ? (
                 <TouchableOpacity style={styles.iconWrapper} onPress={onSupportPress}>
                     <Ionicons name="alert-circle-outline" size={24} color="#D6C0B3" />
                 </TouchableOpacity>
+            ) : (
+                <View style={styles.placeholder} />
             )}
         </View>
     );
@@ -37,7 +54,14 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     iconWrapper: {
-        position: "absolute",
-        right: 20,
+        width: 24,
+        alignItems: "flex-end",
+    },
+    backButton: {
+        width: 24,
+        alignItems: "flex-start",
+    },
+    placeholder: {
+        width: 24, // keeps spacing consistent if button/icon not present
     },
 });

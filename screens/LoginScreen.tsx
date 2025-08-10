@@ -21,18 +21,22 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Feather';
 import { useUser } from '../context/UserContext';
 import { loginAsGuest } from '../utils/guestLogin';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { setUser, setIsGuest } = useUser(); // ✅ context methods
+    const { setUser, setIsGuest } = useUser();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loadingLogin, setLoadingLogin] = useState(false);
     const [loadingGuest, setLoadingGuest] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    const isLoading = loadingLogin || loadingGuest;
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -41,18 +45,42 @@ const LoginScreen = () => {
         }
 
         setLoadingLogin(true);
+
         try {
+            const archivedQuery = query(
+                collection(db, 'archived_users'),
+                where('email', '==', email.trim().toLowerCase())
+            );
+            const archivedSnap = await getDocs(archivedQuery);
+
+            if (!archivedSnap.empty) {
+                const data = archivedSnap.docs[0].data();
+                const reason = data.archiveReason || 'No reason provided';
+
+                Alert.alert(
+                    'Access Denied',
+                    `Your account has been archived.\n\nReason: ${reason}`
+                );
+
+                setLoadingLogin(false);
+                return;
+            }
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            if (user.emailVerified) {
-                setUser(user);
-                setIsGuest(false);
-                navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
-            } else {
+            if (!user.emailVerified) {
+                await auth.signOut();
                 Alert.alert('Email Not Verified', 'Please verify your email before logging in.');
+                setLoadingLogin(false);
+                return;
             }
+
+            setUser(user);
+            setIsGuest(false);
+            navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
         } catch (error: any) {
+            console.error('Login error:', error);
             let message = 'Login failed. Please try again.';
             if (error.code === 'auth/user-not-found') message = 'No user found with that email.';
             else if (error.code === 'auth/wrong-password') message = 'Incorrect password.';
@@ -92,14 +120,20 @@ const LoginScreen = () => {
 
                 <Text style={styles.agreementText}>
                     By signing in you are agreeing to our{' '}
-                    <Text style={styles.linkText} onPress={() => navigation.navigate('Terms')}>
+                    <Text
+                        style={styles.linkText}
+                        onPress={() => !isLoading && navigation.navigate('Terms')}
+                    >
                         Terms and Privacy Policy
                     </Text>
                 </Text>
 
                 <View style={styles.tabContainer}>
                     <Text style={styles.activeTab}>Login</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('SignUp')}
+                        disabled={isLoading}
+                    >
                         <Text style={styles.inactiveTab}>Sign Up</Text>
                     </TouchableOpacity>
                 </View>
@@ -110,7 +144,9 @@ const LoginScreen = () => {
                     keyboardType="email-address"
                     value={email}
                     onChangeText={setEmail}
+                    editable={!isLoading}
                 />
+
                 <View style={styles.passwordContainer}>
                     <TextInput
                         style={styles.input}
@@ -118,36 +154,45 @@ const LoginScreen = () => {
                         secureTextEntry={!showPassword}
                         value={password}
                         onChangeText={setPassword}
+                        editable={!isLoading}
                     />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.eyeIcon}
+                        disabled={isLoading}
+                    >
                         <Icon name={showPassword ? 'eye' : 'eye-off'} size={20} color="#603F26" />
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotPasswordContainer}>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('ForgotPassword')}
+                    style={styles.forgotPasswordContainer}
+                    disabled={isLoading}
+                >
                     <Text style={styles.forgotPassword}>Forget password?</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.loginButton}
                     onPress={handleLogin}
-                    disabled={loadingLogin}
+                    disabled={isLoading}
                 >
-                    <Text style={styles.loginText}>{loadingLogin ? 'Logging in...' : 'Login'}</Text>
+                    <Text style={styles.loginText}>
+                        {loadingLogin ? 'Logging in...' : 'Login'}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     onPress={handleGuestLogin}
-                    disabled={loadingGuest}
+                    disabled={isLoading}
                     style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}
                 >
-                    {loadingGuest && <ActivityIndicator size="small" color="#603F26" style={{ marginRight: 8 }} />}
+                    {loadingGuest && (
+                        <ActivityIndicator size="small" color="#603F26" style={{ marginRight: 8 }} />
+                    )}
                     <Text style={styles.guestText}>Log in as Guest</Text>
                 </TouchableOpacity>
-
-
-
-
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -172,9 +217,10 @@ const styles = StyleSheet.create({
         fontSize: 13,
         textAlign: 'center',
         width: width * 0.8,
+        marginBottom: 20
     },
-    linkText: { fontWeight: 'bold', color: '#603F26' },
-    tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
+    linkText: { fontWeight: 'bold', color: '#603F26', },
+    tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
     activeTab: { color: '#603F26', fontSize: 20 },
     inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26 },
     input: {

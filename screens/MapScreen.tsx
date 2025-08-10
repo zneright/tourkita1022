@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.6)', // Optional: Slightly transparent white
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
 
     loadingText: {
         marginTop: 10,
-        color: '#fff',
+        color: '#000',
         fontSize: 16,
     },
 

@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { CircleLayer, Images, ShapeSource, SymbolLayer } from "@rnmapbox/maps";
 import { OnPressEvent } from "@rnmapbox/maps/lib/typescript/src/types/OnPressEvent";
 import { featureCollection, point } from '@turf/helpers';
@@ -7,7 +6,6 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { useLandmark } from "../provider/LandmarkProvider";
 
-// Import icons
 import pin from '../assets/pinB.png';
 import restroom from '../assets/restroom.png';
 import museum from '../assets/museum.png';

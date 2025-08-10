@@ -33,7 +33,7 @@ const ForgotPasswordScreen = () => {
             return;
         }
 
-        if (isLoading) return; // prevent multiple submissions
+        if (isLoading) return;
         setIsLoading(true);
 
         try {
