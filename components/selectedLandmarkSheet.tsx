@@ -241,22 +241,65 @@ export default function SelectedLandmarkSheet() {
                     <Text style={styles.sectionTitle}>Opening Hours & Events</Text>
                     {(() => {
                         const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-                        const formatDay = (d: string) => d.charAt(0).toUpperCase() + d.slice(1);
+                        const formatDay = (d: string) => d.charAt(0).toUpperCase() + d.slice(1, 3); // Mon, Tue...
+                        const getStatus = (openingHours?: { day: string; open: string; close: string }[]) => {
+                            if (!openingHours || openingHours.length === 0) {
+                                return "No available data";
+                            }
 
-                        return days.map((day, i) => {
-                            const hoursData = selectedLandmark.openingHours[day];
-                            const hours = !hoursData || hoursData.closed
-                                ? "Closed"
-                                : `Open from ${convertTo12HourFormat(hoursData.open)} to ${convertTo12HourFormat(hoursData.close)}`;
+                            const today = new Date().getDay();
+                            const todayHours = openingHours.find(oh => oh.day === daysOfWeek[today]);
 
-                            const eventsToday = weeklyEvents.filter(e => e.day === day);
+                            if (!todayHours) return "No available data";
 
+                            const now = new Date();
+                            const [openHour, openMinute] = todayHours.open.split(":").map(Number);
+                            const [closeHour, closeMinute] = todayHours.close.split(":").map(Number);
+
+                            const openTime = new Date();
+                            openTime.setHours(openHour, openMinute, 0);
+
+                            const closeTime = new Date();
+                            closeTime.setHours(closeHour, closeMinute, 0);
+
+                            return now >= openTime && now <= closeTime ? "Open" : "Closed";
+                        };
+
+                        const formatHours = (data?: { open?: string; close?: string; closed?: boolean }) => {
+                            if (!data) return "Not available";
+                            if (data.closed) return "Closed";
+                            if (!data.open || !data.close) return "No available hours";
+                            return `${convertTo12HourFormat(data.open)} - ${convertTo12HourFormat(data.close)}`;
+                        };
+
+                        let grouped: { label: string; hours: string }[] = [];
+                        let currentGroup: { start: string; end: string; hours: string } | null = null;
+
+                        days.forEach((day, i) => {
+                            const hours = formatHours(selectedLandmark.openingHours?.[day]);
+
+                            if (currentGroup && currentGroup.hours === hours) {
+                                currentGroup.end = formatDay(day);
+                            } else {
+                                if (currentGroup) {
+                                    grouped.push({ label: currentGroup.start === currentGroup.end ? currentGroup.start : `${currentGroup.start} - ${currentGroup.end}`, hours: currentGroup.hours });
+                                }
+                                currentGroup = { start: formatDay(day), end: formatDay(day), hours };
+                            }
+
+                            if (i === days.length - 1 && currentGroup) {
+                                grouped.push({ label: currentGroup.start === currentGroup.end ? currentGroup.start : `${currentGroup.start} - ${currentGroup.end}`, hours: currentGroup.hours });
+                            }
+                        });
+
+                        return grouped.map((g, i) => {
+                            const eventsForGroup = weeklyEvents.filter(ev => g.label.toLowerCase().includes(ev.day));
                             return (
                                 <View key={i} style={{ marginBottom: 6 }}>
-                                    <Text style={[styles.hoursText, hours === "Closed" && styles.closedText]}>
-                                        {formatDay(day)}: {hours}
+                                    <Text style={[styles.hoursText, g.hours === "Closed" && styles.closedText]}>
+                                        {g.label}: {g.hours}
                                     </Text>
-                                    {eventsToday.map((ev, idx) => (
+                                    {eventsForGroup.map((ev, idx) => (
                                         <Text key={idx} style={{ fontSize: 13, color: ev.openToPublic ? "#4CAF50" : "#B71C1C" }}>
                                             🎟 {ev.title} ({convertTo12HourFormat(ev.start)} - {convertTo12HourFormat(ev.end)}) {ev.openToPublic ? "" : "(Private)"}
                                         </Text>
@@ -266,6 +309,7 @@ export default function SelectedLandmarkSheet() {
                         });
                     })()}
                 </View>
+
 
 
                 {/*  description hehe */}

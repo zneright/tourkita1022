@@ -18,10 +18,12 @@ import { format, parseISO, isToday, isTomorrow } from "date-fns";
 type EventWithMeta = {
     title: string;
     time: string;
+    endTime?: string;
     locationName: string;
     description: string;
     imageUrl?: string;
     date: string;
+    openToPublic?: boolean;
 };
 
 type GroupedEvents = {
@@ -70,13 +72,15 @@ const EventCalendar = () => {
                     grouped[date].push({
                         title: data.title,
                         time: data.time,
+                        endTime: data.endTime || undefined,
                         locationName,
                         description: data.description || "",
                         imageUrl: data.imageUrl || "",
                         date,
+                        openToPublic: data.openToPublic ?? undefined,
                     });
 
-                    // Sort events by time (HH:mm) ascending
+
                     grouped[date].sort((a, b) => {
                         const timeA = new Date(`1970-01-01T${a.time}:00`);
                         const timeB = new Date(`1970-01-01T${b.time}:00`);
@@ -131,7 +135,8 @@ const EventCalendar = () => {
                                     >
                                         <Text style={styles.eventTitle}>{event.title}</Text>
                                         <Text style={styles.eventDetails}>
-                                            {event.locationName} — {formatTo12Hour(event.time)}
+                                            {event.locationName}: {formatTo12Hour(event.time)}
+                                            {event.endTime ? ` - ${formatTo12Hour(event.endTime)}` : ""}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}

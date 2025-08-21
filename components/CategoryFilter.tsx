@@ -22,7 +22,7 @@ export default function CategoryFilter({ selectedCategory, onSelectCategory }: P
         { label: "Park", uri: "https://img.icons8.com/ios-filled/100/9c8061/deciduous-tree.png" },
         { label: "School", uri: "https://img.icons8.com/ios-filled/100/9c8061/school.png" },
         { label: "Restroom", uri: "https://img.icons8.com/ios-filled/100/9c8061/toilet.png" },
-        { label: "Gov't Facility", uri: "https://img.icons8.com/ios-filled/100/9c8061/city-hall.png" },
+        { label: "Government", uri: "https://img.icons8.com/ios-filled/100/9c8061/city-hall.png" },
     ];
 
     return (
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexDirection: "row",
-        paddingRight: 12, // prevents last item from being cut off
+        paddingRight: 12,
     },
     category: {
         alignItems: "center",

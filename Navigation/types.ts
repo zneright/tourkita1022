@@ -14,6 +14,8 @@ export type RootStackParamList = {
             age: number;
             contactNumber: string;
             email: string;
+            profileImage: string
+            ,
         };
     };
     Support: undefined;
@@ -30,4 +32,6 @@ export type RootStackParamList = {
     Splash: undefined;
     DeleteAccount: undefined;
     Map: { latitude: number; longitude: number; name: string };
+    IntramurosStreetView: undefined;
+    CalendarView: undefined;
 };

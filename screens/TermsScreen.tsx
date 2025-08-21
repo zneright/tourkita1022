@@ -56,24 +56,23 @@ const TermsScreen = () => {
     if (loading) {
         return (
             <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#493628" />
+                <ActivityIndicator size="large" color="#8B5E3C" />
             </View>
         );
     }
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 30 }}>
             <TopHeader title="Terms & Policies" showBackButton />
 
             <View style={styles.introSection}>
                 <Text style={styles.introText}>
                     Please read our Terms of Service and Privacy Policy carefully before using the TourKita app.
                 </Text>
-                <View style={styles.separator} />
             </View>
 
             {/* Terms of Service */}
-            <View style={styles.section}>
+            <View style={styles.card}>
                 <Text style={styles.sectionTitle}>Terms of Service</Text>
                 {terms.map((item, index) => (
                     <Text key={index} style={styles.bulletText}>
@@ -83,7 +82,8 @@ const TermsScreen = () => {
                 {termsDate && <Text style={styles.lastUpdated}>Last updated: {termsDate}</Text>}
             </View>
 
-            <View style={styles.section}>
+            {/* Privacy Policy */}
+            <View style={styles.card}>
                 <Text style={styles.sectionTitle}>Privacy Policy</Text>
                 {privacy.map((item, index) => (
                     <Text key={index} style={styles.bulletText}>
@@ -92,7 +92,6 @@ const TermsScreen = () => {
                 ))}
                 {privacyDate && <Text style={styles.lastUpdated}>Last updated: {privacyDate}</Text>}
             </View>
-
         </ScrollView>
     );
 };
@@ -102,7 +101,7 @@ export default TermsScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: "#FAFAFA",
     },
     loaderContainer: {
         flex: 1,
@@ -110,31 +109,33 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     introSection: {
-        padding: 16,
+        padding: 20,
     },
     introText: {
         fontSize: 16,
-        color: "#333",
+        color: "#493628",
     },
-    separator: {
-        marginTop: 12,
-        borderBottomColor: "#ccc",
-        borderBottomWidth: 1,
-    },
-    section: {
-        padding: 16,
-        paddingTop: 0,
+    card: {
+        backgroundColor: "#FFFFFF",
+        marginHorizontal: 20,
+        marginVertical: 10,
+        padding: 20,
+        borderRadius: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 5,
+        elevation: 2,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: "600",
         color: "#493628",
-        marginBottom: 8,
-        marginTop: 16,
+        marginBottom: 10,
     },
     bulletText: {
         fontSize: 15,
-        marginBottom: 10,
+        marginBottom: 8,
         color: "#444",
     },
     lastUpdated: {

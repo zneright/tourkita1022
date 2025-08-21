@@ -6,10 +6,12 @@ import {
     StyleSheet,
     TouchableOpacity,
     Alert,
+    ActivityIndicator,
+    ScrollView,
     BackHandler,
+    Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
@@ -26,39 +28,31 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 const ProfileScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [name, setName] = useState<string>('');
+    const [profileImage, setProfileImage] = useState<string>('');
     const { isGuest } = useUser();
-    const [isLoadingName, setIsLoadingName] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchUserData = async () => {
-            setIsLoadingName(true);
+            setLoading(true);
             try {
                 const currentUser = auth.currentUser;
-                console.log('Current user:', currentUser);
-
-                if (!currentUser) {
-                    setIsLoadingName(false);
-                    return;
-                }
+                if (!currentUser) return setLoading(false);
 
                 const q = query(collection(db, 'users'), where('email', '==', currentUser.email));
-                const querySnapshot = await getDocs(q);
-                console.log('Query snapshot empty?', querySnapshot.empty);
+                const snapshot = await getDocs(q);
 
-                if (!querySnapshot.empty) {
-                    const docData = querySnapshot.docs[0].data();
-                    console.log('User doc data:', docData);
-                    const middle = docData.middleInitial ? `${docData.middleInitial}.` : '';
-                    const fullName = `${docData.firstName} ${middle} ${docData.lastName}`.replace(/\s+/g, ' ').trim();
-                    setName(fullName);
-                } else {
-                    setName('No user data found');
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
+                if (!snapshot.empty) {
+                    const data = snapshot.docs[0].data();
+                    const middle = data.middleInitial ? `${data.middleInitial}.` : '';
+                    setName(`${data.firstName} ${middle} ${data.lastName}`.trim());
+                    setProfileImage(data.profileImage || '');
+                } else setName('No user data');
+            } catch (err) {
+                console.error(err);
                 setName('Error loading name');
             } finally {
-                setIsLoadingName(false);
+                setLoading(false);
             }
         };
 
@@ -77,78 +71,94 @@ const ProfileScreen = () => {
                     text: 'Log Out',
                     style: 'destructive',
                     onPress: async () => {
-                        try {
-                            await signOut(getAuth());
-                            await AsyncStorage.removeItem('cachedUserName');
-                            navigation.replace('Login');
-                        } catch {
-                            Alert.alert('Error', 'An error occurred while logging out.');
-                        }
+                        await signOut(getAuth());
+                        await AsyncStorage.removeItem('cachedUserName');
+                        navigation.replace('Login');
                     },
                 },
-            ],
-            { cancelable: true }
+            ]
         );
     };
 
-    // Render menu item
+    const renderProfileImage = () => {
+        if (profileImage)
+            return <Image source={{ uri: profileImage }} style={styles.profileImage} />;
+        const initials = name
+            .split(' ')
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+        return (
+            <View style={styles.profilePlaceholder}>
+                <Text style={styles.initials}>{initials}</Text>
+            </View>
+        );
+    };
+
     const renderMenuItem = (label: string, onPress?: () => void, danger?: boolean) => (
-        <TouchableOpacity style={styles.menuItem} onPress={onPress} key={label}>
+        <TouchableOpacity
+            key={label}
+            style={[styles.menuItem, danger && styles.menuItemDanger]}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
             <Text style={[styles.menuText, danger && styles.dangerText]}>{label}</Text>
-            <Feather
-                name={danger ? 'log-out' : 'chevron-right'}
-                size={20}
-                color={danger ? '#ef4444' : '#493628'}
-            />
+            <Text style={styles.chevron}>{'>'}</Text>
         </TouchableOpacity>
     );
 
     return (
         <SafeAreaView style={styles.container}>
-            <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
-
-            <View style={styles.contentWrapper}>
-                <View style={styles.profileSection}>
-                    {isLoadingName ? (
-                        <Text>Loading Username...</Text>
+            <TopHeader title="Profile" showBackButton onSupportPress={() => navigation.navigate('Support')} />
+            <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 80 }]}>
+                <View style={styles.profileContainer}>
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#8B5E3C" />
                     ) : (
                         <>
-                            <Text style={styles.username}>{isGuest ? 'Guest User' : name || 'No name available'}</Text>
-                            <Text style={{ color: 'gray', marginTop: 10 }}>
-                            </Text>
+                            {renderProfileImage()}
+                            <Text style={styles.username}>{isGuest ? 'Guest User' : name}</Text>
+                            <Text style={styles.userRole}>{isGuest ? 'Limited Access' : 'Registered User'}</Text>
                         </>
                     )}
                 </View>
 
-                <View style={styles.menuContainer}>
-                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Terms')}>
-                        <Text style={styles.menuText}>Terms and Privacy</Text>
-                        <Feather name="chevron-right" size={20} color="#493628" />
-                    </TouchableOpacity>
-
+                {/* Sections */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Account</Text>
                     {renderMenuItem('View Profile', () => navigation.navigate('ViewProfile'))}
                     {renderMenuItem('Change Password', () => navigation.navigate('ChangePassword'))}
-                    {renderMenuItem('Delete Account', () => navigation.navigate('DeleteAccount'))}
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Policies</Text>
+                    {renderMenuItem('Terms and Privacy', () => navigation.navigate('Terms'))}
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Actions</Text>
+                    {renderMenuItem('Delete Account', () => navigation.navigate('DeleteAccount'), true)}
                     {renderMenuItem('Log Out', handleLogOut, true)}
                 </View>
 
-                {/* Blur + modal overlay only if guest */}
                 {isGuest && (
-                    <>
-                        <BlurView intensity={90} tint="light" style={styles.blurOverlay} />
+                    <BlurView intensity={90} tint="light" style={styles.blurOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Sign Up to Unlock Features</Text>
                             <Text style={styles.modalText}>
                                 Create an account to view your profile, change your password, and more!
                             </Text>
-                            <TouchableOpacity style={styles.signUpButton} onPress={() => navigation.navigate('SignUp')}>
+                            <TouchableOpacity
+                                style={styles.signUpButton}
+                                onPress={() => navigation.navigate('SignUp')}
+                            >
                                 <Text style={styles.signUpText}>Sign Up</Text>
                             </TouchableOpacity>
                         </View>
-                    </>
+                    </BlurView>
                 )}
-            </View>
-
+            </ScrollView>
             <BottomFooter active="Profile" />
         </SafeAreaView>
     );
@@ -157,94 +167,51 @@ const ProfileScreen = () => {
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    profileSection: {
-        alignItems: 'center',
-        marginTop: 40,
-        marginBottom: 30,
-    },
-    username: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#493628',
-    },
-    menuContainer: {
-        paddingHorizontal: 20,
-        gap: 12,
-        position: 'relative',
+    container: { flex: 1, backgroundColor: '#F9F9F9' },
+    content: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 30 },
+    profileContainer: { alignItems: 'center', marginBottom: 40 },
+    profileImage: { width: 110, height: 110, borderRadius: 55, marginBottom: 12 },
+    profilePlaceholder: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        backgroundColor: '#8B5E3C',
         justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
+    initials: { fontSize: 32, color: '#fff', fontWeight: '700' },
+    username: { fontSize: 24, fontWeight: '700', color: '#222', marginBottom: 2 },
+    userRole: { fontSize: 13, color: '#8C8C8C' },
+    section: { marginBottom: 20, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+    sectionTitle: { fontSize: 13, color: '#8C8C8C', padding: 10, backgroundColor: '#F5F5F5' },
     menuItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#F0F0F0',
-        paddingVertical: 16,
-        paddingHorizontal: 10,
-        borderRadius: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#EFEFEF',
     },
-    menuText: {
-        fontSize: 16,
-        color: '#493628',
-    },
-    dangerText: {
-        color: 'red',
-        fontWeight: '600',
-    },
-    contentWrapper: {
-        flex: 1,
-        position: 'relative',
-        paddingHorizontal: 24,
-        paddingTop: 20,
-        marginBottom: 0,
-    },
-    blurOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        zIndex: 10,
-        borderRadius: 12,
-        marginBottom: 70,
-    },
+    menuItemDanger: {},
+    menuText: { fontSize: 15, color: '#333' },
+    dangerText: { color: '#FF4D4D', fontWeight: '600' },
+    chevron: { fontSize: 16, color: '#C0C0C0' },
+    blurOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 10, justifyContent: 'center', alignItems: 'center' },
     modalContainer: {
-        position: 'absolute',
-        top: '40%',
-        left: 30,
-        right: 30,
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderRadius: 16,
-        padding: 20,
+        backgroundColor: '#fff',
+        padding: 22,
+        borderRadius: 14,
         alignItems: 'center',
-        zIndex: 11,
         shadowColor: '#000',
+        shadowOpacity: 0.08,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowRadius: 6,
         elevation: 5,
     },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#493628',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    modalText: {
-        fontSize: 14,
-        color: '#6B5E5E',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    signUpButton: {
-        backgroundColor: '#4C372B',
-        paddingVertical: 10,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-    },
-    signUpText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
+    modalTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8, textAlign: 'center' },
+    modalText: { fontSize: 14, color: '#6B5E5E', marginBottom: 14, textAlign: 'center' },
+    signUpButton: { backgroundColor: '#8B5E3C', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
+    signUpText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

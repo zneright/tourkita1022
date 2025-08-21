@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 import { LineLayer, ShapeSource } from "@rnmapbox/maps";
 import { Position } from "@rnmapbox/maps/lib/typescript/src/types/Position";
 

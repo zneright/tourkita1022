@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
-import { Ionicons } from '@expo/vector-icons'; // For eye icon, install expo/vector-icons if not installed
+import { Ionicons } from '@expo/vector-icons';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -38,11 +38,9 @@ const SignUpScreen = () => {
     const [isChecked, setIsChecked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Visibility toggles for passwords
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Validation errors - track which fields have error
     const [errors, setErrors] = useState<{
         lastName?: boolean;
         firstName?: boolean;
@@ -54,9 +52,7 @@ const SignUpScreen = () => {
         terms?: boolean;
     }>({});
 
-    // Remove error on input change
     const onChangeField = (field: keyof typeof errors, value: string) => {
-        // Update corresponding value and remove error for that field
         switch (field) {
             case "lastName":
                 setLastName(value);
@@ -85,7 +81,6 @@ const SignUpScreen = () => {
         }
     };
 
-    // Checkbox special case
     const onToggleCheckbox = () => {
         setIsChecked(prev => {
             if (errors.terms) {
@@ -110,7 +105,6 @@ const SignUpScreen = () => {
     }, []);
 
     const handleNext = async () => {
-        // Validate all required fields & rules
         let newErrors: typeof errors = {};
 
         if (!lastName.trim()) newErrors.lastName = true;
@@ -121,7 +115,6 @@ const SignUpScreen = () => {
         const contactRegex = /^09\d{9}$/;
         if (!contactRegex.test(contactNumber)) newErrors.contactNumber = true;
 
-        // Password validation: min 7 chars, at least one letter and one number
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{7,}$/;
         if (!passwordRegex.test(password)) newErrors.password = true;
 
@@ -134,9 +127,22 @@ const SignUpScreen = () => {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            Alert.alert("Please correct the highlighted fields.");
+
+            const errorMessages: string[] = [];
+
+            if (newErrors.lastName) errorMessages.push("Last Name is required.");
+            if (newErrors.firstName) errorMessages.push("First Name is required.");
+            if (newErrors.age) errorMessages.push("Age must be a positive number.");
+            if (newErrors.contactNumber) errorMessages.push("Contact number must start with 09 and be 11 digits.");
+            if (newErrors.email) errorMessages.push("Email format is invalid.");
+            if (newErrors.password) errorMessages.push("Password must be at least 7 characters and include letters & numbers.");
+            if (newErrors.confirmPassword) errorMessages.push("Passwords do not match.");
+            if (newErrors.terms) errorMessages.push("You must accept the terms and conditions.");
+
+            Alert.alert("Invalid Fields", errorMessages.join("\n"));
             return;
         }
+
 
         setIsSubmitting(true);
 
@@ -159,6 +165,7 @@ const SignUpScreen = () => {
                     age: parseInt(age),
                     contactNumber,
                     email,
+                    profileImage: "https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg",
                 },
             });
         } catch (error: any) {

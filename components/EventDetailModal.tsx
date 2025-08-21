@@ -1,4 +1,3 @@
-// components/EventDetailModal.tsx
 import React from "react";
 import {
     Modal,
@@ -10,66 +9,103 @@ import {
     ScrollView,
 } from "react-native";
 import { format, isToday, parse } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
 
+type EventType = {
+    title: string;
+    description?: string;
+    date: string;
+    time: string;
+    endTime?: string;
+    locationName: string;
+    imageUrl?: string;
+    openToPublic?: boolean;
+};
 
 type Props = {
     visible: boolean;
     onClose: () => void;
-    event: {
-        title: string;
-        description: string;
-        date: string; // e.g., '2025-07-27'
-        time: string; // e.g., '13:45'
-        locationName: string;
-        imageUrl?: string;
-    } | null;
+    event: EventType | null;
 };
 
 const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
     if (!event) return null;
 
     const eventDate = parse(event.date, "yyyy-MM-dd", new Date());
-    const displayDate = isToday(eventDate)
-        ? "Today"
-        : format(eventDate, "MMMM dd, yyyy");
+    const displayDate = isToday(eventDate) ? "Today" : format(eventDate, "MMMM dd, yyyy");
 
-    // Format time to 12-hour format
-    const formattedTime = (() => {
+    const formatTime = (timeStr?: string) => {
+        if (!timeStr) return "N/A";
         try {
-            const timeDate = parse(event.time, "HH:mm", new Date());
-            return format(timeDate, "hh:mm a");
+            const t = parse(timeStr, "HH:mm", new Date());
+            return format(t, "hh:mm a");
         } catch {
-            return event.time; // fallback to original if parsing fails
+            return timeStr;
         }
-    })();
+    };
+
+    const formattedStartTime = formatTime(event.time);
+    const formattedEndTime = event.endTime ? formatTime(event.endTime) : null;
+
+    const publicStatus = event.openToPublic ? "Open to Public" : "Not Open to Public";
+    const publicStatusColor = event.openToPublic ? "#27ae60" : "#c0392b";
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
-                    <ScrollView contentContainerStyle={styles.content}>
-                        <Text style={styles.title}>{event.title}</Text>
-                        <Text style={styles.subText}>
-                            {displayDate} — {formattedTime}
-                        </Text>
-                        <Text style={styles.location}>{event.locationName}</Text>
 
+                    {/* Top X Button */}
+                    <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
+                        <Ionicons name="close" size={28} color="#555" />
+                    </TouchableOpacity>
+
+                    <ScrollView contentContainerStyle={styles.content}>
+
+                        {/* Hero Image */}
                         {event.imageUrl && (
                             <Image
                                 source={{ uri: event.imageUrl }}
-                                style={styles.image}
+                                style={styles.heroImage}
                                 resizeMode="cover"
                             />
                         )}
 
+                        {/* Event Title */}
+                        <Text style={styles.title}>{event.title}</Text>
 
-                        <Text style={styles.description}>
-                            {event.description || "No description provided."}
-                        </Text>
+                        {/* Date & Time Card */}
+                        <View style={styles.infoCard}>
+                            <Ionicons name="calendar-outline" size={20} color="#555" />
+                            <Text style={styles.infoText}>{displayDate}</Text>
+                            <Ionicons name="time-outline" size={20} color="#555" style={{ marginLeft: 20 }} />
+                            <Text style={styles.infoText}>
+                                {formattedStartTime}{formattedEndTime ? ` — ${formattedEndTime}` : ""}
+                            </Text>
+                        </View>
 
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Text style={styles.closeButtonText}>Close</Text>
-                        </TouchableOpacity>
+                        {/* Location Card */}
+                        <View style={styles.infoCard}>
+                            <Ionicons name="location-outline" size={20} color="#555" />
+                            <Text style={styles.infoText}>{event.locationName}</Text>
+                        </View>
+
+                        {/* Description Section */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Description</Text>
+                            <Text style={styles.description}>
+                                {event.description || "No description provided."}
+                            </Text>
+                        </View>
+
+                        {/* Open/Closed Status */}
+                        <View style={styles.statusCard}>
+                            <Ionicons name="people-outline" size={20} color={publicStatusColor} />
+                            <Text style={[styles.statusText, { color: publicStatusColor }]}>
+                                {publicStatus}
+                            </Text>
+                        </View>
+
                     </ScrollView>
                 </View>
             </View>
@@ -83,53 +119,101 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         alignItems: "center",
+        padding: 10,
     },
     modalContainer: {
+        width: "95%",
+        maxHeight: "85%",
         backgroundColor: "#fff",
-        width: "90%",
-        borderRadius: 12,
-        maxHeight: "80%",
+        borderRadius: 20,
         overflow: "hidden",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    closeIcon: {
+        position: "absolute",
+        top: 10,
+        right: 10,
+        zIndex: 10,
     },
     content: {
-        padding: 20,
+        paddingTop: 40,
+        paddingHorizontal: 20,
+        alignItems: "center",
+        paddingBottom: 20,
+    },
+    heroImage: {
+        width: "100%",
+        height: 220,
+        borderRadius: 16,
+        marginBottom: 15,
+        backgroundColor: "#ddd",
     },
     title: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 6,
+        color: "#2c3e50",
+        textAlign: "center",
+        marginBottom: 15,
     },
-    subText: {
-        fontSize: 14,
-        color: "#555",
-        marginBottom: 4,
-    },
-    location: {
-        fontSize: 14,
-        color: "#777",
-        marginBottom: 12,
-    },
-    image: {
+    infoCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f9f9f9",
+        paddingVertical: 12,
+        paddingHorizontal: 18,
+        borderRadius: 12,
         width: "100%",
-        height: 180,
-        borderRadius: 8,
         marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        flexWrap: "wrap",
+    },
+    infoText: {
+        fontSize: 10,
+        color: "#555",
+        marginLeft: 8,
+    },
+    section: {
+        width: "100%",
+        marginBottom: 15,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#2c3e50",
+        marginBottom: 6,
     },
     description: {
         fontSize: 15,
-        color: "#444",
-        marginBottom: 20,
+        color: "#555",
+        textAlign: "justify",
+        lineHeight: 20,
     },
-    closeButton: {
-        alignSelf: "center",
-        paddingVertical: 10,
+    statusCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f0f0f0",
+        paddingVertical: 12,
         paddingHorizontal: 20,
-        backgroundColor: "#493628",
-        borderRadius: 8,
+        borderRadius: 12,
+        marginBottom: 25,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    closeButtonText: {
-        color: "#fff",
+    statusText: {
+        fontSize: 13,
         fontWeight: "bold",
+        marginLeft: 8,
     },
 });
 

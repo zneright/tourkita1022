@@ -20,39 +20,47 @@ type EmailVerificationRouteProp = RouteProp<RootStackParamList, "EmailVerificati
 
 const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp }) => {
     const navigation = useNavigation<NavigationProp>();
+    const { userData } = route.params;
     const [isEmailVerified, setIsEmailVerified] = useState<boolean | null>(null);
     const [checking, setChecking] = useState(true);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const { userData } = route.params;
+
+    const checkEmailVerification = async () => {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            await user.reload();
+            if (user.emailVerified) {
+                setIsEmailVerified(true);
+                setChecking(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+            }
+        } catch (error) {
+            console.error("Email verification check failed:", error);
+        }
+    };
 
     useEffect(() => {
-        const checkEmailVerification = async () => {
-            const user = auth.currentUser;
-            if (user) {
-                await user.reload();
-                if (user.emailVerified) {
-                    setIsEmailVerified(true);
-                } else {
-                    setIsEmailVerified(false);
-                }
-            }
+        // Immediately check once
+        checkEmailVerification();
+
+        // Poll every 1 second
+        intervalRef.current = setInterval(checkEmailVerification, 1000);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
         };
-
-        const interval = setInterval(() => {
-            checkEmailVerification();
-        }, 3000);
-
-        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
+        // Auto-delete after 5 min if not verified
         timeoutRef.current = setTimeout(async () => {
             const user = auth.currentUser;
             if (user && !user.emailVerified) {
                 await user.delete();
-                Alert.alert(
-                    "Verification Unsuccesful"
-                );
+                Alert.alert("Verification Unsuccessful", "Your account has been removed.");
                 navigation.reset({ index: 0, routes: [{ name: "Login" }] });
             }
         }, 5 * 60 * 1000);
@@ -64,7 +72,6 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
 
     useEffect(() => {
         const user = auth.currentUser;
-
         if (isEmailVerified && user) {
             const userDataWithCreatedAt = {
                 ...userData,
@@ -87,16 +94,14 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
         const onBackPress = () => {
             Alert.alert(
                 "Cancel Email Verification",
-                "Are you sure you want to go back? ",
+                "Are you sure you want to go back?",
                 [
                     { text: "Cancel", style: "cancel" },
                     {
                         text: "OK",
                         onPress: async () => {
                             const user = auth.currentUser;
-                            if (user && !user.emailVerified) {
-                                await user.delete();
-                            }
+                            if (user && !user.emailVerified) await user.delete();
                             navigation.reset({ index: 0, routes: [{ name: "Login" }] });
                         },
                     },
@@ -106,9 +111,7 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
         };
 
         BackHandler.addEventListener("hardwareBackPress", onBackPress);
-        return () => {
-            BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-        };
+        return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
     });
 
     return (
@@ -130,7 +133,7 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
                 </Text>
 
                 {checking && (
-                    <View style={{ marginVertical: 20 }}>
+                    <View style={{ marginVertical: 20, alignItems: "center" }}>
                         <ActivityIndicator size="large" color="#603F26" />
                         <Text style={{ color: "#6B5E5E", marginTop: 10 }}>
                             Checking verification status...

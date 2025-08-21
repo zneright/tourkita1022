@@ -95,7 +95,7 @@ const CalendarViewScreen = () => {
         <View style={styles.container}>
             <TopHeader title="Calendar" showBackButton />
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView>
                 <Calendar
                     markedDates={markedDates}
                     onDayPress={onDayPress}

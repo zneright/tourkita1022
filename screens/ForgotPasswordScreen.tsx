@@ -2,17 +2,20 @@ import React, { useState } from "react";
 import {
     SafeAreaView,
     ScrollView,
+    View,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    Alert,
     ActivityIndicator,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 type RootStackParamList = {
     Login: undefined;
@@ -25,74 +28,78 @@ const ForgotPasswordScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [email, setEmail] = useState("");
     const [isEmailSent, setIsEmailSent] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const handleSendResetLink = async () => {
         if (!email) {
-            Alert.alert("Missing Email", "Please enter your email address.");
-            return;
+            return alert("Please enter your email address.");
         }
 
-        if (isLoading) return;
-        setIsLoading(true);
-
+        setLoading(true);
         try {
             await sendPasswordResetEmail(auth, email);
             setIsEmailSent(true);
-            Alert.alert(
-                "Email Sent",
-                "If this email is registered, a password reset link has been sent."
-            );
+            alert("If this email is registered, a password reset link has been sent.");
         } catch (error: any) {
-            console.error("Reset email error:", error);
-            Alert.alert("Error", error.message || "Failed to send password reset email.");
+            alert(error.message || "Failed to send password reset email.");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <Text style={styles.title}>Forgot Password</Text>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerText}>Forgot Password</Text>
+                </View>
 
-                <TextInput
-                    style={styles.input}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#999"
-                />
+                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Email Address</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="Enter your email"
+                            placeholderTextColor="#999"
+                        />
+                    </View>
 
-                <TouchableOpacity
-                    style={[styles.sendCodeButton, isLoading && { opacity: 0.6 }]}
-                    onPress={handleSendResetLink}
-                    disabled={isLoading}
-                >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.sendCodeText}>
-                            {isEmailSent ? "Resend Email" : "Send Reset Link"}
-                        </Text>
-                    )}
-                </TouchableOpacity>
-
-                {isEmailSent ? (
                     <TouchableOpacity
-                        style={styles.confirmButton}
-                        onPress={() => navigation.navigate("Login")}
+                        style={[styles.sendButton, loading && styles.disabledButton]}
+                        onPress={handleSendResetLink}
+                        disabled={loading}
                     >
-                        <Text style={styles.confirmText}>Back to Login</Text>
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.sendButtonText}>
+                                {isEmailSent ? "Resend Email" : "Send Reset Link"}
+                            </Text>
+                        )}
                     </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                        <Text style={styles.footerText}>← Back to Login</Text>
-                    </TouchableOpacity>
-                )}
-            </ScrollView>
+
+                    {isEmailSent ? (
+                        <TouchableOpacity
+                            style={styles.confirmButton}
+                            onPress={() => navigation.navigate("Login")}
+                        >
+                            <Text style={styles.confirmButtonText}>Back to Login</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                            <Text style={styles.footerText}>← Back to Login</Text>
+                        </TouchableOpacity>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
@@ -100,61 +107,47 @@ const ForgotPasswordScreen = () => {
 export default ForgotPasswordScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
+    container: { flex: 1, backgroundColor: "#fff" },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E0E0E0",
     },
-    scrollContainer: {
-        flexGrow: 1,
-        justifyContent: "center",
-        padding: 24,
-    },
-    title: {
-        fontSize: 24,
-        color: "#603F26",
-        fontWeight: "bold",
-        marginBottom: 20,
-        textAlign: "center",
-    },
+    backButton: { marginRight: 12 },
+    backText: { fontSize: 24, color: "#333" },
+    headerText: { fontSize: 20, fontWeight: "600", color: "#333" },
+    content: { padding: 20, paddingTop: 30, flexGrow: 1 },
+    inputGroup: { marginBottom: 25 },
+    label: { fontSize: 14, color: "#555", marginBottom: 6 },
     input: {
-        width: "100%",
+        flex: 1,
         height: 48,
-        borderColor: "#603F26",
         borderWidth: 1,
-        borderRadius: 12,
+        borderColor: "#ccc",
+        borderRadius: 8,
         paddingHorizontal: 12,
-        fontSize: 16,
-        marginBottom: 16,
-    },
-    sendCodeButton: {
-        width: "100%",
-        backgroundColor: "#603F26",
-        paddingVertical: 12,
-        borderRadius: 10,
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    sendCodeText: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    confirmButton: {
-        width: "100%",
-        backgroundColor: "#6B5E5E",
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    confirmText: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    footerText: {
-        color: "#6B5E5E",
+        backgroundColor: "#fafafa",
         fontSize: 14,
-        textAlign: "center",
+        color: "#333",
     },
+    sendButton: {
+        backgroundColor: "#8B5E3C",
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    sendButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+    disabledButton: { opacity: 0.6 },
+    confirmButton: {
+        backgroundColor: "#8B5E3C",
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    confirmButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+    footerText: { color: "#6B5E5E", fontSize: 14, textAlign: "center" },
 });
