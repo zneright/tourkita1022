@@ -34,4 +34,5 @@ export type RootStackParamList = {
     Map: { latitude: number; longitude: number; name: string };
     IntramurosStreetView: undefined;
     CalendarView: undefined;
+    FAQScreen: undefined;
 };

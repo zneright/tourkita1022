@@ -32,12 +32,18 @@ type Marker = {
 };
 
 type Event = {
-    date: string;
-    time: string;
-    endTime: string;
-    locationId: string;
-    openToPublic: boolean;
+    id: string;
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    locationId?: string;
+    address: string;
+    eventStartTime?: string;
+    eventEndTime?: string;
+    date?: string;
+    openToPublic?: boolean;
 };
+
 
 const SearchScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -63,6 +69,7 @@ const SearchScreen = () => {
         const relevantEvents = events.filter((event) => {
             if (event.locationId !== markerId) return false;
             if (event.openToPublic) return false;
+            if (!event.date) return false;
 
             const eventDate = new Date(event.date);
             if (
@@ -72,8 +79,8 @@ const SearchScreen = () => {
             )
                 return false;
 
-            const [startHour, startMinute] = event.time.split(":").map(Number);
-            const [endHour, endMinute] = event.endTime.split(":").map(Number);
+            const [startHour, startMinute] = event.eventStartTime?.split(":").map(Number) ?? [0, 0];
+            const [endHour, endMinute] = event.eventEndTime?.split(":").map(Number) ?? [23, 59];
 
             const eventStart = new Date(eventDate);
             eventStart.setHours(startHour, startMinute, 0, 0);
@@ -83,8 +90,10 @@ const SearchScreen = () => {
 
             return now >= eventStart && now <= eventEnd;
         });
+
         return relevantEvents.length > 0;
     };
+
 
     // open ba?!
     const getOpenStatus = (marker: Marker): string => {
@@ -92,10 +101,9 @@ const SearchScreen = () => {
         if (!marker.openingHours) return "Opening hours unavailable";
 
         const now = new Date();
-        const dayName = now
-            .toLocaleDateString("en-US", { weekday: "long" })
-            .toLowerCase();
+        const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
         const today = marker.openingHours[dayName];
+
         if (!today || today.closed) return "Closed today";
 
         const [openHour, openMinute] = today.open.split(":").map(Number);
@@ -103,12 +111,14 @@ const SearchScreen = () => {
 
         const openTime = new Date();
         openTime.setHours(openHour, openMinute, 0, 0);
+
         const closeTime = new Date();
         closeTime.setHours(closeHour, closeMinute, 0, 0);
 
         if (now >= openTime && now <= closeTime) return `Open now until ${today.close}`;
         return "Closed now";
     };
+
 
 
     useEffect(() => {
@@ -135,13 +145,19 @@ const SearchScreen = () => {
                 const eventsData = snapshotEvents.docs.map((doc) => {
                     const d = doc.data();
                     return {
-                        date: d.date,
-                        time: d.time,
-                        endTime: d.endTime,
+                        id: doc.id,
+                        title: d.title ?? "Untitled Event",
+                        description: d.description,
+                        imageUrl: d.imageUrl,
                         locationId: d.locationId,
-                        openToPublic: d.openToPublic,
+                        address: d.address || "Address not available",
+                        eventStartTime: d.time,
+                        eventEndTime: d.endTime,
+                        date: d.date,
+                        openToPublic: d.openToPublic ?? false,
                     };
                 });
+
 
                 setAllMarkers(markersData);
                 setEvents(eventsData);
@@ -220,11 +236,22 @@ const SearchScreen = () => {
                     </View>
                 </View>
 
+                {/* Calendar + View Full Calendar button */}
+                {searchText.trim() === "" && (
+                    <View style={{ marginBottom: 20 }}>
+                        <EventCalendar events={events} />
+                        <TouchableOpacity
+                            style={styles.fullCalendarButton}
+                            onPress={() => navigation.navigate("CalendarView")}
+                        >
+                            <Text style={styles.fullCalendarButtonText}>View Full Calendar</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {loading && (
                     <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />
                 )}
-
-                {searchText.trim() === "" && <EventCalendar />}
 
                 {searchText.trim() !== "" ? (
                     filteredMarkers.length > 0 ? (
@@ -243,6 +270,7 @@ const SearchScreen = () => {
                     </>
                 )}
             </ScrollView>
+
 
             <Modal visible={modalVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
@@ -393,6 +421,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
     },
+    fullCalendarButton: {
+        marginHorizontal: 22,
+        paddingVertical: 12,
+        backgroundColor: "#493628",
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    fullCalendarButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+
 });
 
 export default SearchScreen;

@@ -1,39 +1,36 @@
-// screens/CalendarViewScreen.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, Modal, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { getDocs, collection } from "firebase/firestore";
 import { db } from "../firebase";
-import { useNavigation } from "@react-navigation/native";
 import { format, parseISO } from "date-fns";
 import TopHeader from "../components/TopHeader";
 import EventDetailModal from "../components/EventDetailModal";
 
-
-
-type EventItem = {
+type Event = {
+    id: string;
     title: string;
-    date: string;
-    time: string;
-    locationName: string;
     description?: string;
     imageUrl?: string;
+    locationId?: string;
+    address?: string;
+    eventStartTime?: string;
+    eventEndTime?: string;
+    date?: string;
+    openToPublic?: boolean;
 };
 
-
 const CalendarViewScreen = () => {
-    const [events, setEvents] = useState<EventItem[]>([]);
+    const [events, setEvents] = useState<Event[]>([]);
     const [markedDates, setMarkedDates] = useState<any>({});
-    const [selectedEvents, setSelectedEvents] = useState<EventItem[]>([]);
+    const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const todayStr = format(new Date(), "yyyy-MM-dd");
-    const todaysEvents = events
-        .filter(e => e.date === todayStr)
-        .sort((a, b) => a.time.localeCompare(b.time));
-
     const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-    const formatTime12Hour = (time: string) => {
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+
+    const formatTime12Hour = (time?: string) => {
         if (!time) return "";
         const [hour, minute] = time.split(":").map(Number);
         const date = new Date();
@@ -41,42 +38,58 @@ const CalendarViewScreen = () => {
         return format(date, "h:mm a");
     };
 
+    const todaysEvents = events
+        .filter((e) => e.date === todayStr)
+        .sort((a, b) => (a.eventStartTime || "").localeCompare(b.eventStartTime || ""));
+
     useEffect(() => {
         const fetchEvents = async () => {
-            const eventSnap = await getDocs(collection(db, "events"));
-            const markerSnap = await getDocs(collection(db, "markers"));
+            try {
+                const eventSnap = await getDocs(collection(db, "events"));
+                const markerSnap = await getDocs(collection(db, "markers"));
 
-            const markerMap: { [id: string]: string } = {};
-            markerSnap.forEach(doc => {
-                markerMap[doc.id] = doc.data().name;
-            });
-
-            const fetchedEvents: EventItem[] = [];
-            const dateMap: any = {};
-
-            eventSnap.forEach(doc => {
-                const data = doc.data();
-                const locationName = markerMap[data.locationId] || "Unknown Location";
-                const dateStr = data.date;
-
-                fetchedEvents.push({
-                    title: data.title,
-                    date: dateStr,
-                    time: data.time,
-                    locationName,
-                    description: data.description || "",
-                    imageUrl: data.imageUrl || undefined,
-
+                const markerMap: { [id: string]: string } = {};
+                markerSnap.forEach((doc) => {
+                    const data = doc.data();
+                    markerMap[doc.id] = data.name || "Unknown Location";
                 });
 
-                dateMap[dateStr] = {
-                    marked: true,
-                    dotColor: "#493628",
-                };
-            });
+                const fetchedEvents: Event[] = [];
+                const dateMap: any = {};
 
-            setEvents(fetchedEvents);
-            setMarkedDates(dateMap);
+                eventSnap.forEach((doc) => {
+                    const data = doc.data();
+
+                    const eventTitle = data.title ?? "Untitled Event";
+                    const eventDate = data.date ?? "";
+                    const eventStartTime = data.eventStartTime ?? "";
+                    const eventEndTime = data.eventEndTime ?? "";
+                    const address = markerMap[data.locationId] ?? "Unknown Location";
+
+                    fetchedEvents.push({
+                        id: doc.id,
+                        title: eventTitle,
+                        description: data.description ?? "",
+                        imageUrl: data.imageUrl ?? undefined,
+                        locationId: data.locationId,
+                        address: markerMap[data.locationId] ?? "Unknown Location",
+                        date: eventDate,
+                        eventStartTime,
+                        eventEndTime,
+                        openToPublic: data.openToPublic ?? false,
+                    });
+
+
+                    if (eventDate) {
+                        dateMap[eventDate] = { marked: true, dotColor: "#493628" };
+                    }
+                });
+
+                setEvents(fetchedEvents);
+                setMarkedDates(dateMap);
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            }
         };
 
         fetchEvents();
@@ -122,16 +135,16 @@ const CalendarViewScreen = () => {
                                 }}
                             >
                                 <Text style={styles.eventTitle}>{event.title}</Text>
-                                <Text style={styles.eventTime}>{formatTime12Hour(event.time)} — {event.locationName}</Text>
-                                <Text style={styles.eventDescription}>{event.description}</Text>
+                                <Text style={styles.eventTime}>
+                                    {formatTime12Hour(event.eventStartTime)}
+                                </Text>
                             </TouchableOpacity>
-
                         ))
                     )}
                 </View>
+
             </ScrollView>
 
-            {/* Modal stays outside the ScrollView */}
             <Modal visible={modalVisible} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -153,11 +166,13 @@ const CalendarViewScreen = () => {
                                         setDetailModalVisible(true);
                                     }}
                                 >
-                                    <Text style={styles.eventTitle}>{event.title}</Text>
-                                    <Text style={styles.eventTime}>{formatTime12Hour(event.time)} — {event.locationName}</Text>
-                                    <Text style={styles.eventDescription}>{event.description}</Text>
-                                </TouchableOpacity>
+                                    <Text style={styles.eventTime}>
+                                        {formatTime12Hour(event.eventStartTime)}
+                                        {event.address ? ` — ${event.address}` : ""}
+                                    </Text>
 
+
+                                </TouchableOpacity>
                             ))}
                         </ScrollView>
                         <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
@@ -166,6 +181,7 @@ const CalendarViewScreen = () => {
                     </View>
                 </View>
             </Modal>
+
             <EventDetailModal
                 visible={detailModalVisible}
                 onClose={() => {
@@ -174,81 +190,24 @@ const CalendarViewScreen = () => {
                 }}
                 event={selectedEvent}
             />
-
         </View>
     );
-
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: "#fff",
-        borderRadius: 10,
-        padding: 20,
-        width: "100%",
-        maxHeight: "80%",
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#493628",
-    },
-    eventCard: {
-        backgroundColor: "#F8F4F0",
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 8,
-    },
-    eventTitle: {
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    eventTime: {
-        fontSize: 14,
-        color: "#666",
-        marginVertical: 4,
-    },
-    eventDescription: {
-        fontSize: 14,
-        color: "#444",
-    },
-    closeButton: {
-        marginTop: 10,
-        paddingVertical: 10,
-        backgroundColor: "#493628",
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    closeButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-    },
-    todaysContainer: {
-        padding: 16,
-    },
-
-    todaysTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#493628",
-        marginBottom: 10,
-    },
-
-    noEventsText: {
-        fontSize: 14,
-        color: "#999",
-    },
-
+    container: { flex: 1 },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
+    modalContent: { backgroundColor: "#fff", borderRadius: 10, padding: 20, width: "100%", maxHeight: "80%" },
+    modalTitle: { fontSize: 18, fontWeight: "bold", color: "#493628" },
+    eventCard: { backgroundColor: "#F8F4F0", padding: 10, marginBottom: 10, borderRadius: 8 },
+    eventTitle: { fontSize: 16, fontWeight: "bold" },
+    eventTime: { fontSize: 14, color: "#666", marginVertical: 4 },
+    eventDescription: { fontSize: 14, color: "#444" },
+    closeButton: { marginTop: 10, paddingVertical: 10, backgroundColor: "#493628", borderRadius: 8, alignItems: "center" },
+    closeButtonText: { color: "#fff", fontWeight: "bold" },
+    todaysContainer: { padding: 16 },
+    todaysTitle: { fontSize: 18, fontWeight: "bold", color: "#493628", marginBottom: 10 },
+    noEventsText: { fontSize: 14, color: "#999" },
 });
 
 export default CalendarViewScreen;

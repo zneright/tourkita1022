@@ -2,13 +2,11 @@ import { auth, db } from '../firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
-// ✅ Step 1: Generate custom guest ID
 const generateGuestId = (): string => {
-    const randomNum = Math.floor(10000000 + Math.random() * 90000000); // 8-digit number
+    const randomNum = Math.floor(10000000 + Math.random() * 90000000); 
     return `G${randomNum}`;
 };
 
-// ✅ Step 2: Login as guest and store guestId in Firestore
 export const loginAsGuest = async () => {
     const result = await signInAnonymously(auth);
     const user = result.user;
@@ -24,7 +22,6 @@ export const loginAsGuest = async () => {
     return user;
 };
 
-// ✅ Step 3: Fetch guestId if needed elsewhere
 export const fetchGuestId = async () => {
     const uid = auth.currentUser?.uid;
     if (!uid) return null;

@@ -26,7 +26,14 @@ export default function ViewProfileScreen() {
     const navigation = useNavigation<NavigationProp>();
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState<any>(null);
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            navigation.goBack();
+            return true;
+        });
 
+        return () => backHandler.remove();
+    }, []);
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -103,9 +110,10 @@ export default function ViewProfileScreen() {
         <SafeAreaView style={styles.container}>
             <TopHeader
                 title="Profile"
-                onBackPress={() => navigation.goBack()}
+                onBackPress={() => navigation.navigate("Profile")}
                 onSupportPress={() => navigation.navigate('Support')}
             />
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.profileHeader}>
                     {userData.profileImage ? (

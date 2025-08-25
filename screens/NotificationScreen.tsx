@@ -44,6 +44,7 @@ interface Notification {
     contextType?: "Feature" | "Location";
     imageUrl?: string;
     viewedBy?: string[];
+    audience?: "guest" | "registered" | "all";
 }
 
 const NotificationScreen = () => {
@@ -62,7 +63,7 @@ const NotificationScreen = () => {
     useEffect(() => {
         const userCreationTime = user?.metadata?.creationTime
             ? new Date(user.metadata.creationTime)
-            : new Date(0);
+            : new Date();
 
         const fetchNotifications = async () => {
             try {
@@ -72,69 +73,60 @@ const NotificationScreen = () => {
                     setNotifications(parsed.map(n => ({ ...n, timestamp: new Date(n.timestamp) })));
                 }
 
+                const isGuest = userId === "guest";
+
                 const [notifSnap, adminSnap] = await Promise.all([
                     getDocs(collection(db, "notifications")),
                     getDocs(query(collection(db, "adminMessages"), where("to", "==", userEmail))),
                 ]);
 
-                const notifData: Notification[] = notifSnap.docs.map(docSnap => {
-                    const data = docSnap.data();
-                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                    return {
-                        id: docSnap.id,
-                        title: data.title || "Untitled",
-                        message: data.message || "No message provided.",
-                        timestamp: data.timestamp?.toDate?.() ?? new Date(),
-                        category: data.category || "info",
-                        viewed: viewedBy.includes(userId),
-                        source: "notifications",
-                        imageUrl: data.imageUrl || "",
-                    };
-                });
+                const notifData: Notification[] = notifSnap.docs
+                    .map(docSnap => {
+                        const data = docSnap.data();
+                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                        return {
+                            id: docSnap.id,
+                            title: data.title || "Untitled",
+                            message: data.message || "No message provided.",
+                            timestamp: data.timestamp?.toDate?.() ?? new Date(),
+                            category: data.category || "info",
+                            viewed: viewedBy.includes(userId),
+                            source: "notifications" as NotificationSource,
+                            imageUrl: data.imageUrl || "",
+                            audience: data.audience || "all",
+                            viewedBy,
+                        };
+                    })
+                    .filter(n => {
+                        const afterCreation = n.timestamp >= userCreationTime;
+                        const audienceMatch =
+                            n.audience === "all" || (isGuest && n.audience === "guest") || (!isGuest && n.audience === "registered");
 
-                const adminData: Notification[] = adminSnap.docs.map(docSnap => {
-                    const data = docSnap.data();
-                    const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
-                    return {
-                        id: docSnap.id,
-                        title: "Admin Response to Your Feedback",
-                        message: data.message || "No reply message.",
-                        timestamp: data.sentAt?.toDate?.() ?? new Date(),
-                        category: "feedback",
-                        viewed: viewedBy.includes(userId),
-                        source: "adminMessages",
-                        context: data.context || "",
-                        contextType: data.contextType || "",
-                    };
-                });
+                        const isSpecificDoc = n.id === "2TE1minYn4KNOPo2b64T";
 
-                const filteredNotifData = notifData.filter(n => {
-                    const isRecent = n.timestamp >= userCreationTime;
-                    const isUnseenWelcome =
-                        n.title?.toLowerCase().includes("welcome") &&
-                        n.category === "updates" &&
-                        !(n.viewedBy || []).includes(userId);
+                        return (afterCreation && audienceMatch) || isSpecificDoc;
+                    });
 
-                    return isRecent || isUnseenWelcome;
-                });
 
-                // Mark welcome notifications as viewed
-                notifData.forEach(async (n) => {
-                    if (
-                        n.title?.toLowerCase().includes("welcome") &&
-                        n.category === "updates" &&
-                        !(n.viewedBy || []).includes(userId)
-                    ) {
-                        const notifRef = doc(db, "notifications", n.id);
-                        await updateDoc(notifRef, {
-                            viewedBy: arrayUnion(userId),
-                        });
-                    }
-                });
+                const adminData: Notification[] = adminSnap.docs
+                    .map(docSnap => {
+                        const data = docSnap.data();
+                        const viewedBy = Array.isArray(data.viewedBy) ? data.viewedBy : [];
+                        return {
+                            id: docSnap.id,
+                            title: "Admin Response to Your Feedback",
+                            message: data.message || "No reply message.",
+                            timestamp: data.sentAt?.toDate?.() ?? new Date(),
+                            category: "feedback",
+                            viewed: viewedBy.includes(userId),
+                            source: "adminMessages" as NotificationSource,
+                            context: data.context || "",
+                            contextType: data.contextType || "",
+                        };
+                    })
+                    .filter(n => n.timestamp >= userCreationTime);
 
-                const filteredAdminData = adminData.filter(n => n.timestamp >= userCreationTime);
-
-                const combined = [...filteredNotifData, ...filteredAdminData].sort(
+                const combined = [...notifData, ...adminData].sort(
                     (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
                 );
 
@@ -149,6 +141,7 @@ const NotificationScreen = () => {
 
         fetchNotifications();
     }, [userId, userEmail]);
+
 
     const toggleExpand = async (id: string) => {
         const notif = notifications.find(n => n.id === id);

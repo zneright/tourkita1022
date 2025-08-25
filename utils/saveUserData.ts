@@ -23,7 +23,7 @@ export const saveUserData = async (userData: UserData) => {
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        middleInitial: userData.middleInitial || "", // Optional field
+        middleInitial: userData.middleInitial || "", 
         gender: userData.gender,
         userType: userData.userType,
         age: userData.age,

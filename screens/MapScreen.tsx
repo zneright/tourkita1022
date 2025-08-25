@@ -3,13 +3,10 @@ import {
     SafeAreaView,
     View,
     Text,
-    Image,
     StyleSheet,
-    ScrollView,
     Dimensions,
     TouchableOpacity,
     StatusBar,
-    Platform,
     ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";

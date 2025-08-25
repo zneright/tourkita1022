@@ -1,5 +1,6 @@
 import React from "react";
 import {
+    Linking,
     SafeAreaView,
     View,
     ScrollView,
@@ -81,13 +82,14 @@ const SupportScreen = () => {
                         onPress={() => handlePress("Message Us")}
                     />
                 </View>
-
                 <SupportRow
                     label="FAQs Questions"
                     subtitle="Discover App Information"
                     icon="help-circle-outline"
-                    onPress={() => handlePress("FAQs Questions")}
+                    onPress={() => navigation.navigate("FAQScreen")}
                 />
+
+
                 {isGuest ? (
                     <SupportRow
                         label="Feedback"

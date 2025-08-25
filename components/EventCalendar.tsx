@@ -2,43 +2,37 @@ import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
-    StyleSheet,
     ScrollView,
+    StyleSheet,
     ActivityIndicator,
     TouchableOpacity,
 } from "react-native";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../Navigation/types";
 import EventDetailModal from "./EventDetailModal";
-import { format, parseISO, isToday, isTomorrow } from "date-fns";
+import { isToday, isTomorrow, parseISO } from "date-fns";
 
-type EventWithMeta = {
+type EventType = {
+    id: string;
     title: string;
-    time: string;
-    endTime?: string;
-    locationName: string;
-    description: string;
+    description?: string;
     imageUrl?: string;
-    date: string;
+    locationId?: string;
+    address: string;
+    eventStartTime?: string;
+    eventEndTime?: string;
+    date?: string;
     openToPublic?: boolean;
 };
 
-type GroupedEvents = {
-    [date: string]: EventWithMeta[];
-};
-
 const EventCalendar = () => {
-    const [events, setEvents] = useState<GroupedEvents>({});
+    const [events, setEvents] = useState<EventType[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<EventWithMeta | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
 
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
-    const formatTo12Hour = (time24: string): string => {
+    const formatTo12Hour = (time24?: string) => {
+        if (!time24) return "N/A";
         const [hourStr, minute] = time24.split(":");
         const hour = parseInt(hourStr, 10);
         const suffix = hour >= 12 ? "PM" : "AM";
@@ -47,111 +41,94 @@ const EventCalendar = () => {
     };
 
     useEffect(() => {
-        const fetchEventsAndMarkers = async () => {
+        const fetchEvents = async () => {
             setLoading(true);
             try {
-                const markersSnapshot = await getDocs(collection(db, "markers"));
-                const markersMap: { [id: string]: string } = {};
-                markersSnapshot.forEach(doc => {
-                    markersMap[doc.id] = doc.data().name;
-                });
+                const eventsSnap = await getDocs(collection(db, "events"));
+                const fetchedEvents: EventType[] = [];
 
-                const eventsSnapshot = await getDocs(collection(db, "events"));
-                const grouped: GroupedEvents = {};
+                for (const docSnap of eventsSnap.docs) {
+                    const data = docSnap.data();
 
-                eventsSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    const date = data.date;
-                    const locationName = markersMap[data.locationId] || "Unknown Location";
+                    let address = "Address not available";
+                    if (data.locationId) {
+                        const markerRef = doc(db, "markers", data.locationId);
+                        const markerSnap = await getDoc(markerRef);
+                        if (markerSnap.exists()) {
+                            const markerData = markerSnap.data();
+                            address = markerData.name || markerData.address || "Address not available";
+                        }
+                    }
 
-                    const eventDate = parseISO(date);
-                    if (!isToday(eventDate) && !isTomorrow(eventDate)) return;
+                    const eventDate = data.date ? parseISO(data.date) : new Date();
+                    if (isToday(eventDate) || isTomorrow(eventDate)) {
+                        fetchedEvents.push({
+                            id: docSnap.id,
+                            title: data.title ?? "Untitled Event",
+                            description: data.description,
+                            imageUrl: data.imageUrl,
+                            locationId: data.locationId,
+                            address,
+                            eventStartTime: data.eventStartTime,
+                            eventEndTime: data.eventEndTime,
+                            date: data.date,
+                            openToPublic: data.openToPublic ?? false,
+                        });
+                    }
+                }
 
-                    if (!grouped[date]) grouped[date] = [];
+                fetchedEvents.sort(
+                    (a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()
+                );
 
-                    grouped[date].push({
-                        title: data.title,
-                        time: data.time,
-                        endTime: data.endTime || undefined,
-                        locationName,
-                        description: data.description || "",
-                        imageUrl: data.imageUrl || "",
-                        date,
-                        openToPublic: data.openToPublic ?? undefined,
-                    });
-
-
-                    grouped[date].sort((a, b) => {
-                        const timeA = new Date(`1970-01-01T${a.time}:00`);
-                        const timeB = new Date(`1970-01-01T${b.time}:00`);
-                        return timeA.getTime() - timeB.getTime();
-                    });
-
-                });
-
-                setEvents(grouped);
+                setEvents(fetchedEvents);
             } catch (error) {
-                console.error("Error fetching calendar events:", error);
+                console.error("Error fetching events:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchEventsAndMarkers();
+        fetchEvents();
     }, []);
 
-    const sortedDates = Object.keys(events).sort((a, b) => {
-        return new Date(a).getTime() - new Date(b).getTime();
-    });
-
     if (loading) {
-        return <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />;
+        return (
+            <ActivityIndicator size="large" color="#493628" style={{ marginTop: 20 }} />
+        );
     }
 
     return (
         <View style={styles.wrapper}>
             <Text style={styles.header}>Events for Today & Tomorrow</Text>
-            {sortedDates.length === 0 ? (
+            {events.length === 0 ? (
                 <Text style={styles.noEvents}>No events for today or tomorrow.</Text>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContainer}>
-                    {sortedDates.map((date, index) => {
-                        const parsedDate = parseISO(date);
-                        const readableDate = format(parsedDate, "MMMM d, yyyy");
-                        const label = isToday(parsedDate) ? "Today" : isTomorrow(parsedDate) ? "Tomorrow" : "";
-
+                    {events.map((event) => {
+                        const label =
+                            new Date(event.date!).toDateString() === new Date().toDateString()
+                                ? "Today"
+                                : "Tomorrow";
                         return (
-                            <View key={index} style={styles.dateSection}>
-                                <Text style={styles.dateTitle}>{readableDate}</Text>
-                                {label && <Text style={styles.dateLabel}>({label})</Text>}
-                                {events[date].map((event, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        style={styles.eventCard}
-                                        onPress={() => {
-                                            setSelectedEvent(event);
-                                            setModalVisible(true);
-                                        }}
-                                    >
-                                        <Text style={styles.eventTitle}>{event.title}</Text>
-                                        <Text style={styles.eventDetails}>
-                                            {event.locationName}: {formatTo12Hour(event.time)}
-                                            {event.endTime ? ` - ${formatTo12Hour(event.endTime)}` : ""}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                            <TouchableOpacity
+                                key={event.id}
+                                style={styles.eventCard}
+                                onPress={() => {
+                                    setSelectedEvent(event);
+                                    setModalVisible(true);
+                                }}
+                            >
+                                <Text style={styles.eventTitle}>{event.title}</Text>
+                                <Text style={styles.eventDetails}>
+                                    {event.address}: {formatTo12Hour(event.eventStartTime)}
+                                    {event.eventEndTime ? ` - ${formatTo12Hour(event.eventEndTime)}` : ""} ({label})
+                                </Text>
+                            </TouchableOpacity>
                         );
                     })}
                 </ScrollView>
             )}
-
-            <TouchableOpacity
-                style={styles.calendarButton}
-                onPress={() => navigation.navigate("CalendarView")}
-            >
-                <Text style={styles.calendarButtonText}>View Full Calendar</Text>
-            </TouchableOpacity>
 
             <EventDetailModal
                 visible={modalVisible}
@@ -163,71 +140,13 @@ const EventCalendar = () => {
 };
 
 const styles = StyleSheet.create({
-    wrapper: {
-        paddingHorizontal: 22,
-        marginTop: 20,
-        marginBottom: 60,
-    },
-    header: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#493628",
-        marginBottom: 12,
-    },
-    scrollContainer: {
-        paddingBottom: 20,
-    },
-    dateSection: {
-        marginBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ddd",
-        paddingBottom: 10,
-    },
-    dateTitle: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: "#493628",
-    },
-    dateLabel: {
-        fontSize: 14,
-        color: "#888",
-        marginBottom: 6,
-    },
-    eventCard: {
-        backgroundColor: "#F8F4F0",
-        padding: 10,
-        borderRadius: 8,
-        marginBottom: 8,
-    },
-    eventTitle: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#333",
-    },
-    eventDetails: {
-        fontSize: 13,
-        color: "#666",
-        marginTop: 2,
-    },
-    noEvents: {
-        textAlign: "center",
-        fontSize: 16,
-        color: "#999",
-        marginTop: 20,
-    },
-    calendarButton: {
-        marginTop: 20,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        backgroundColor: "#493628",
-        borderRadius: 10,
-        alignItems: "center",
-    },
-    calendarButtonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
-    },
+    wrapper: { paddingHorizontal: 22, marginTop: 20, marginBottom: 60 },
+    header: { fontSize: 20, fontWeight: "bold", color: "#493628", marginBottom: 12 },
+    scrollContainer: { paddingBottom: 20 },
+    eventCard: { backgroundColor: "#F8F4F0", padding: 10, borderRadius: 8, marginBottom: 8 },
+    eventTitle: { fontSize: 15, fontWeight: "600", color: "#333" },
+    eventDetails: { fontSize: 13, color: "#666", marginTop: 2 },
+    noEvents: { textAlign: "center", fontSize: 16, color: "#999", marginTop: 20 },
 });
 
 export default EventCalendar;

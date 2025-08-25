@@ -39,6 +39,13 @@ const LoginScreen = () => {
     const isLoading = loadingLogin || loadingGuest;
 
     const handleLogin = async () => {
+        if (isLoading) return;
+
+        if (!/\S+@\S+\.\S+/.test(email)) {
+            Alert.alert('Invalid Email', 'Please enter a valid email address.');
+            return;
+        }
+
         if (!email || !password) {
             Alert.alert('Missing Fields', 'Please enter both email and password.');
             return;
@@ -78,13 +85,15 @@ const LoginScreen = () => {
 
             setUser(user);
             setIsGuest(false);
-            navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
+            navigation.replace('Maps');
         } catch (error: any) {
             console.error('Login error:', error);
-            let message = 'Login failed. Please try again.';
-            if (error.code === 'auth/user-not-found') message = 'No user found with that email.';
-            else if (error.code === 'auth/wrong-password') message = 'Incorrect password.';
-            else if (error.code === 'auth/invalid-email') message = 'Invalid email format.';
+            const errorMessages: Record<string, string> = {
+                'auth/user-not-found': 'No user found with that email.',
+                'auth/wrong-password': 'Incorrect password.',
+                'auth/invalid-email': 'Invalid email format.',
+            };
+            const message = errorMessages[error.code] || 'Login failed. Please try again.';
             Alert.alert('Login Error', message);
         } finally {
             setLoadingLogin(false);
@@ -92,12 +101,13 @@ const LoginScreen = () => {
     };
 
     const handleGuestLogin = async () => {
+        if (isLoading) return;
         setLoadingGuest(true);
         try {
             const user = await loginAsGuest();
             setUser(user);
             setIsGuest(true);
-            navigation.reset({ index: 0, routes: [{ name: 'Maps' }] });
+            navigation.replace('Maps');
         } catch (error) {
             console.error('Guest login error:', error);
             Alert.alert('Guest Login Failed', 'Could not log in as guest.');
@@ -232,6 +242,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         width: width * 0.8,
         marginBottom: 10,
+        paddingRight: 40,
     },
     passwordContainer: {
         flexDirection: 'row',

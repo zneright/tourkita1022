@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
         alignItems: "flex-start",
     },
     placeholder: {
-        width: 24, // keeps spacing consistent if button/icon not present
+        width: 24, 
     },
 });

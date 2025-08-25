@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     SafeAreaView,
     View,
@@ -10,6 +10,7 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
+    BackHandler
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -31,7 +32,14 @@ const ChangePasswordScreen = () => {
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            navigation.goBack();
+            return true;
+        });
 
+        return () => backHandler.remove();
+    }, []);
     const handleChangePassword = async () => {
         if (!currentPassword || !newPassword || !confirmPassword) {
             return alert("All fields are required.");
@@ -76,7 +84,6 @@ const ChangePasswordScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-                {/* Header with back button */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />

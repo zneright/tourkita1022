@@ -15,9 +15,9 @@ type EventType = {
     title: string;
     description?: string;
     date: string;
-    time: string;
-    endTime?: string;
-    locationName: string;
+    eventStartTime: string;
+    eventEndTime?: string;
+    address: string;
     imageUrl?: string;
     openToPublic?: boolean;
 };
@@ -44,8 +44,8 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
         }
     };
 
-    const formattedStartTime = formatTime(event.time);
-    const formattedEndTime = event.endTime ? formatTime(event.endTime) : null;
+    const formattedStartTime = formatTime(event.eventStartTime);
+    const formattedEndTime = event.eventStartTime ? formatTime(event.eventEndTime) : null;
 
     const publicStatus = event.openToPublic ? "Open to Public" : "Not Open to Public";
     const publicStatusColor = event.openToPublic ? "#27ae60" : "#c0392b";
@@ -55,14 +55,12 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
 
-                    {/* Top X Button */}
                     <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
                         <Ionicons name="close" size={28} color="#555" />
                     </TouchableOpacity>
 
                     <ScrollView contentContainerStyle={styles.content}>
 
-                        {/* Hero Image */}
                         {event.imageUrl && (
                             <Image
                                 source={{ uri: event.imageUrl }}
@@ -71,10 +69,8 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
                             />
                         )}
 
-                        {/* Event Title */}
                         <Text style={styles.title}>{event.title}</Text>
 
-                        {/* Date & Time Card */}
                         <View style={styles.infoCard}>
                             <Ionicons name="calendar-outline" size={20} color="#555" />
                             <Text style={styles.infoText}>{displayDate}</Text>
@@ -84,13 +80,11 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
                             </Text>
                         </View>
 
-                        {/* Location Card */}
                         <View style={styles.infoCard}>
                             <Ionicons name="location-outline" size={20} color="#555" />
-                            <Text style={styles.infoText}>{event.locationName}</Text>
+                            <Text style={styles.infoText}>{event.address}</Text>
                         </View>
 
-                        {/* Description Section */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Description</Text>
                             <Text style={styles.description}>
@@ -98,7 +92,6 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
                             </Text>
                         </View>
 
-                        {/* Open/Closed Status */}
                         <View style={styles.statusCard}>
                             <Ionicons name="people-outline" size={20} color={publicStatusColor} />
                             <Text style={[styles.statusText, { color: publicStatusColor }]}>

@@ -23,6 +23,7 @@ import FeedbackScreen from '../screens/FeedbackScreen';
 import SplashScreen from "../screens/SplashScreen";
 import DeleteAccountScreen from '../screens/DeleteAccountScreen';
 import CalendarViewScreen from '../screens/CalendarViewScreen';
+import FAQScreen from '../screens/FAQScreen';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,7 +51,8 @@ const AppNavigator = () => {
                     <Stack.Screen name="Feedback" component={FeedbackScreen} />
                     <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
                     <Stack.Screen name="CalendarView" component={CalendarViewScreen} />
-                </Stack.Navigator>
+                    <Stack.Screen name="FAQScreen" component={FAQScreen} />
+                </Stack.Navigator>n
                 <SelectedLandmarkSheet />
             </LandmarkProvider>
         </GestureHandlerRootView>
