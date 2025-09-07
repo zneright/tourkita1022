@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "TourKita",
+    "slug": "tourKita",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/TourKitaFinalLogo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/TourKitaFinalLogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
+        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to use your camera",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use your microphone"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/TourKitaFinalLogo.png",
+        "backgroundColor": "#transparent"
+      },
+      "package": "com.ryanchico.tourkita"
+    },
+    "plugins": [
+      "@reactvision/react-viro"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11d3aada-199b-4f87-beb5-8f5aa1f0e4e4"
+      }
+    }
+  }
+}
