@@ -1,0 +1,619 @@
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useEffect, useRef, useState, useMemo } from "react";
+import {
+    Text,
+    Image,
+    View,
+    TouchableOpacity,
+    ActivityIndicator,
+    Modal,
+    StyleSheet,
+} from "react-native";
+import { useLandmark } from "../provider/LandmarkProvider";
+import Entypo from "@expo/vector-icons/Entypo";
+import Fontisto from "@expo/vector-icons/Fontisto";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import { Ionicons } from "@expo/vector-icons";
+import { db } from "../firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
+
+import SkeletonBox from "../components/Skeleton";
+export default function SelectedLandmarkSheet() {
+    const [isImageModalVisible, setImageModalVisible] = useState(false);
+    const [averageRating, setAverageRating] = useState<number | null>(null);
+    const [reviewCount, setReviewCount] = useState<number>(0);
+    const [eventInProgress, setEventInProgress] = useState(false);
+    // Fix: add default value to useLandmark to avoid {} type
+    const { selectedLandmark, duration, distance, loadingDirection, loadDirection } = useLandmark() as any;
+
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ["50%", "90%"], []);
+    const [weeklyEvents, setWeeklyEvents] = useState<{ day: string; title: string; start: string; end: string; openToPublic: boolean }[]>([]);
+
+    const [loadingSheet, setLoadingSheet] = useState(true);
+
+    //  Pag pinindot ang markers
+    useEffect(() => {
+        if (selectedLandmark) {
+            bottomSheetRef.current?.expand();
+            setLoadingSheet(true);
+            Promise.all([fetchAverageRating(), checkEvents()])
+                .finally(() => setLoadingSheet(false));
+            loadDirection();
+        }
+    }, [selectedLandmark]);
+    const parseTimeToMinutes = (t?: string | null) => {
+        if (!t) return null;
+        const match = t.trim().match(/^(\d{1,2}):?(\d{2})?\s*(AM|PM)$/i);
+        if (!match) return null;
+
+        let hour = parseInt(match[1], 10);
+        const minute = match[2] ? parseInt(match[2], 10) : 0;
+        const ampm = match[3].toUpperCase();
+
+        if (ampm === "PM" && hour !== 12) hour += 12;
+        if (ampm === "AM" && hour === 12) hour = 0;
+
+        return hour * 60 + minute;
+    };
+
+    //  May event ba?
+    const checkEvents = async () => {
+        if (!selectedLandmark) return;
+
+        try {
+            const q = query(
+                collection(db, "events"),
+                where("locationId", "==", String(selectedLandmark.id))
+            );
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                setWeeklyEvents([]);
+                setEventInProgress(false);
+                return;
+            }
+
+            const now = new Date();
+            const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+            const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+            let inProgress = false;
+            let eventsForWeek: {
+                day: string;
+                title: string;
+                start: string;
+                end: string;
+                openToPublic: boolean;
+            }[] = [];
+
+            snapshot.forEach((docSnap) => {
+                const ev: any = docSnap.data();
+
+                // Parse dates
+                const startDate = ev.startDate?.toDate?.() || new Date(ev.startDate);
+                const endDate = ev.endDate?.toDate?.() || new Date(ev.endDate);
+
+                if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
+
+                // Repeating weekly events → extend forward
+                let current = new Date(startDate);
+                while (current <= endDate) {
+                    // check only this week’s range
+                    if (isWithinInterval(current, { start: weekStart, end: weekEnd })) {
+                        const dayName = current.toLocaleString("en-US", { weekday: "long" }).toLowerCase();
+                        eventsForWeek.push({
+                            day: dayName,
+                            title: ev.title || "Untitled Event",
+                            start: ev.eventStartTime || "12:00 AM",
+                            end: ev.eventEndTime || "11:59 PM",
+                            openToPublic: ev.openToPublic !== false,
+                        });
+
+                        // If today matches and within hours → closed for private event
+                        const sameDay =
+                            current.getFullYear() === now.getFullYear() &&
+                            current.getMonth() === now.getMonth() &&
+                            current.getDate() === now.getDate();
+
+                        if (sameDay) {
+                            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                            const start = parseTimeToMinutes(ev.eventStartTime) ?? 0;
+                            const end = parseTimeToMinutes(ev.eventEndTime) ?? 24 * 60;
+                            const within = end > start
+                                ? nowMinutes >= start && nowMinutes < end
+                                : nowMinutes >= start || nowMinutes < end;
+
+                            if (within && ev.openToPublic === false) inProgress = true;
+                        }
+                    }
+
+                    // increment → next week if repeating
+                    if (ev.repeat) {
+                        current = addWeeks(current, 1);
+                    } else {
+                        break;
+                    }
+                }
+            });
+
+            setWeeklyEvents(eventsForWeek);
+            setEventInProgress(inProgress);
+        } catch (err) {
+            console.error("checkEvents error:", err);
+            setWeeklyEvents([]);
+            setEventInProgress(false);
+        }
+    };
+
+
+    const fetchAverageRating = async () => {
+        if (!selectedLandmark) return;
+        try {
+            const q = query(collection(db, "feedbacks"), where("location", "==", selectedLandmark.name));
+            const querySnapshot = await getDocs(q);
+            const ratings: number[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (typeof data.rating === "number") ratings.push(data.rating);
+            });
+            if (ratings.length > 0) {
+                const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+                setAverageRating(Number(avg.toFixed(1)));
+                setReviewCount(ratings.length);
+            } else {
+                setAverageRating(null);
+                setReviewCount(0);
+            }
+        } catch {
+            setAverageRating(null);
+            setReviewCount(0);
+        }
+    };
+
+    const handleGetDirection = () => loadDirection();
+
+    if (!selectedLandmark) return null;
+
+    // Checking of time and date now na!
+    const today = new Date();
+    const dayOfWeek = today.toLocaleString("en-US", { weekday: "long" }).toLowerCase();
+    const currentTime = today.getHours() * 60 + today.getMinutes();
+
+    //  bukas ba?
+    const isOpenToday = () => {
+        const hoursToday = selectedLandmark?.openingHours?.[dayOfWeek];
+        const eventsToday = weeklyEvents.filter(ev => ev.day === dayOfWeek);
+
+        if (eventsToday.some(ev => !ev.openToPublic)) return false;
+        if (!hoursToday || hoursToday.closed) return false;
+
+        const parseTime = (t?: string) => {
+            if (!t) return null;
+            const [h, m] = t.split(":").map(Number);
+            return isNaN(h) || isNaN(m) ? null : h * 60 + m;
+        };
+
+        const openMinutes = parseTime(hoursToday.open);
+        const closeMinutes = parseTime(hoursToday.close);
+
+        if (openMinutes == null || closeMinutes == null) return false;
+
+        // === New: treat 00:00 - 23:59 as 24-hour open ===
+        if (openMinutes === 0 && closeMinutes === 23 * 60 + 59) return true;
+
+        const withinHours =
+            closeMinutes > openMinutes
+                ? currentTime >= openMinutes && currentTime < closeMinutes
+                : currentTime >= openMinutes || currentTime < closeMinutes;
+
+        return withinHours;
+    };
+
+
+    const convertTo12HourFormat = (time24: string | undefined) => {
+        if (!time24) return "";
+        const [h, m] = time24.split(":").map(Number);
+        const period = h >= 12 ? "PM" : "AM";
+        const h12 = h % 12 || 12;
+        return `${h12}:${m < 10 ? "0" : ""}${m} ${period}`;
+    };
+    const openStatus = isOpenToday();
+
+    const statusIcon = openStatus
+        ? <Ionicons name="checkmark-circle" size={18} color="green" />
+        : <Ionicons name="close-circle" size={18} color="red" />;
+
+    const statusText = openStatus
+        ? "Open"
+        : eventInProgress
+            ? "Closed for Private Event"
+            : "Closed";
+
+
+    return (
+        <BottomSheet
+            ref={bottomSheetRef}
+            index={-1}
+            snapPoints={snapPoints}
+            enablePanDownToClose={true}
+            backgroundStyle={styles.sheetBackground}
+        >
+            <BottomSheetScrollView contentContainerStyle={styles.scrollContainer}>
+                {loadingSheet ? (
+                    <View>
+                        <SkeletonBox width={200} height={20} />
+                        <SkeletonBox width="100%" height={200} style={{ marginTop: 10, borderRadius: 12 }} />
+                        <SkeletonBox width="90%" height={15} style={{ marginTop: 10 }} />
+                        <SkeletonBox width="80%" height={15} style={{ marginTop: 6 }} />
+                        <SkeletonBox width="60%" height={15} style={{ marginTop: 6 }} />
+                    </View>
+                ) : (
+                    <>
+                        {/*  Header*/}
+                        <View style={styles.topRow}>
+                            <Text style={styles.arSupportText}>
+                                {selectedLandmark.arCameraSupported ? "AR Camera Supported" : "No AR Support"}
+                            </Text>
+                            <View style={styles.topRowInfo}>
+                                <View style={styles.iconTextRow}>
+                                    <FontAwesome5 name="route" size={14} color="black" />
+                                    {loadingDirection ? (
+                                        <ActivityIndicator size="small" />
+                                    ) : (
+                                        <Text>{(duration / 1000).toFixed(2)} km</Text>
+                                    )}
+                                </View>
+                                <View style={styles.iconTextRow}>
+                                    <Entypo name="back-in-time" size={16} color="black" />
+                                    {loadingDirection ? (
+                                        <ActivityIndicator size="small" />
+                                    ) : (
+                                        <Text>{(distance / 60).toFixed(0)} min</Text>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+
+                        {/*  Image */}
+                        <View style={styles.infoRow}>
+                            <TouchableOpacity onPress={() => setImageModalVisible(true)}>
+                                <Image
+                                    source={{
+                                        uri:
+                                            selectedLandmark.category === "Event" && selectedLandmark.image
+                                                ? selectedLandmark.image
+                                                : selectedLandmark.image || null,
+                                    }}
+                                    style={styles.image}
+                                />
+
+                            </TouchableOpacity>
+                           <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Address</Text>
+    <Text style={styles.address}>
+        {selectedLandmark.locationId && selectedLandmark.address
+            ? selectedLandmark.address
+            : selectedLandmark.customAddress || "No address available"}
+    </Text>
+</View>
+
+
+                                <View style={styles.statusRow}>{statusIcon}<Text>{statusText}</Text></View>
+                                <View style={styles.statusRow}>
+                                    <Fontisto name="ticket" size={16} />
+                                    <Text>
+                                        Entrance:{" "}
+                                        {selectedLandmark.entranceFee && Number(selectedLandmark.entranceFee) > 0
+                                            ? `₱${selectedLandmark.entranceFee}`
+                                            : "Free"}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Opening Hours & Events</Text>
+                            {(() => {
+                                const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+                                const formatDay = (d: string) => d.charAt(0).toUpperCase() + d.slice(1, 3); // Mon, Tue...
+
+                                const formatHours = (data?: { open?: string; close?: string; closed?: boolean }) => {
+                                    if (!data) return "Not available";
+                                    if (data.closed) return "Closed";
+                                    if (!data.open || !data.close) return "No available hours";
+
+                                    if (data.open === "00:00" && data.close === "23:59") return "Open 24 hours";
+
+                                    return `${convertTo12HourFormat(data.open)} - ${convertTo12HourFormat(data.close)}`;
+                                };
+
+
+
+                                if (weeklyEvents.length > 0) {
+                                    return days.map((day, i) => {
+                                        const label = formatDay(day);
+                                        const hours = formatHours(selectedLandmark.openingHours?.[day]);
+                                        const eventsForDay = weeklyEvents.filter(ev => ev.day === day);
+
+                                        return (
+                                            <View key={i} style={{ marginBottom: 6 }}>
+                                                <Text style={[styles.hoursText, hours === "Closed" && styles.closedText]}>
+                                                    {label}: {hours}
+                                                </Text>
+
+                                                {eventsForDay.length > 0 ? (
+                                                    eventsForDay.map((ev, idx) => (
+                                                        <Text
+                                                            key={idx}
+                                                            style={{ fontSize: 13, color: ev.openToPublic ? "#4CAF50" : "#B71C1C" }}
+                                                        >
+                                                            🎟 {ev.title} ({ev.start} - {ev.end}) {ev.openToPublic ? "" : "(Private)"}
+                                                        </Text>
+                                                    ))
+                                                ) : (
+                                                    <Text style={{ fontSize: 12, color: "#8D6E63", marginLeft: 10 }}>
+                                                        No events
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        );
+                                    });
+                                } else {
+                                    let grouped: { label: string; hours: string }[] = [];
+                                    let currentGroup: { start: string; end: string; hours: string } | null = null;
+
+                                    days.forEach((day, i) => {
+                                        const label = formatDay(day);
+                                        const hours = formatHours(selectedLandmark.openingHours?.[day]);
+
+                                        if (currentGroup && currentGroup.hours === hours) {
+                                            currentGroup.end = label;
+                                        } else {
+                                            if (currentGroup) {
+                                                grouped.push({
+                                                    label:
+                                                        currentGroup.start === currentGroup.end
+                                                            ? currentGroup.start
+                                                            : `${currentGroup.start} - ${currentGroup.end}`,
+                                                    hours: currentGroup.hours,
+                                                });
+                                            }
+                                            currentGroup = { start: label, end: label, hours };
+                                        }
+
+                                        if (i === days.length - 1 && currentGroup) {
+                                            grouped.push({
+                                                label:
+                                                    currentGroup.start === currentGroup.end
+                                                        ? currentGroup.start
+                                                        : `${currentGroup.start} - ${currentGroup.end}`,
+                                                hours: currentGroup.hours,
+                                            });
+                                        }
+                                    });
+
+                                    return grouped.map((g, idx) => (
+                                        <Text
+                                            key={idx}
+                                            style={[styles.hoursText, g.hours === "Closed" && styles.closedText]}
+                                        >
+                                            {g.label}: {g.hours}
+                                        </Text>
+                                    ));
+                                }
+                            })()}
+                        </View>
+
+
+                        {/* Description */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Description</Text>
+                            <Text style={styles.description}>{selectedLandmark.description}</Text>
+                        </View>
+
+                        {/* Rating */}
+                        {averageRating !== null && (
+                            <View style={styles.ratingRow}>
+                                <FontAwesome5 name="star" size={16} color="#E4B343" />
+                                <Text style={styles.ratingText}>
+                                    {averageRating} / 5 ({reviewCount} review{reviewCount > 1 ? "s" : ""})
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Button */}
+                        <TouchableOpacity
+                            onPress={handleGetDirection}
+                            disabled={loadingDirection}
+                            style={styles.button}
+                        >
+                            {loadingDirection ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <Entypo name="direction" size={22} color="white" />
+                                    <Text style={styles.buttonText}>Get Direction</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        {/* Modal */}
+                        <Modal visible={isImageModalVisible} transparent>
+                            <TouchableOpacity style={styles.modal} onPress={() => setImageModalVisible(false)}>
+                                <Image source={{ uri: selectedLandmark.image }} style={styles.modalImage} />
+                            </TouchableOpacity>
+                        </Modal>
+                    </>
+                )}
+            </BottomSheetScrollView>
+        </BottomSheet>
+    );
+
+} const styles = StyleSheet.create({
+    sheetBackground: {
+        backgroundColor: "#F9F4F0",
+    },
+    scrollContainer: {
+        padding: 20,
+        paddingBottom: 40,
+        gap: 10,
+    },
+
+    topRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    arSupportText: {
+        fontWeight: "600",
+        fontSize: 14,
+        color: "#6D4C41",
+        paddingHorizontal: 5,
+    },
+    topRowInfo: {
+        flexDirection: "row",
+        gap: 4,
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+    },
+    iconTextRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 3,
+        backgroundColor: "#EFE1D7",
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+
+    infoRow: {
+        flexDirection: "row",
+        gap: 16,
+        alignItems: "flex-start",
+    },
+    image: {
+        width: 160,
+        height: 150,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: "#D7CCC8",
+        backgroundColor: "#F3EDEB",
+    },
+
+    detailsContainer: {
+        flex: 1,
+        justifyContent: "space-between",
+        gap: 6,
+    },
+    name: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#4E342E",
+        marginBottom: 6,
+    },
+    locationRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    statusRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 2,
+    },
+
+    section: {
+        backgroundColor: "#FFF9F4",
+        padding: 18,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#E6D9CF",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+
+    sectionTitle: {
+        fontWeight: "700",
+        fontSize: 18,
+        color: "#3E2723",
+        marginBottom: 10,
+        letterSpacing: 0.4,
+    },
+    hoursText: {
+        fontSize: 14,
+        color: "#5D4037",
+        paddingVertical: 2,
+    },
+    closedText: {
+        color: "#B71C1C",
+        fontWeight: "500",
+    },
+    description: {
+        fontSize: 15,
+        lineHeight: 24,
+        color: "#4E342E",
+        textAlign: "justify",
+        letterSpacing: 0.3,
+    },
+
+    ratingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        gap: 8,
+        backgroundColor: "#F0E7E1",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E3D6CF",
+    },
+    ratingText: {
+        fontWeight: "600",
+        fontSize: 14.5,
+        color: "#4E342E",
+    },
+
+    button: {
+        marginTop: 20,
+        backgroundColor: "#6D4C41",
+        borderRadius: 28,
+        height: 52,
+        paddingHorizontal: 28,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 10,
+        alignSelf: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 5,
+        elevation: 5,
+    },
+    buttonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+        letterSpacing: 0.5,
+    },
+
+    modal: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.85)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalImage: {
+        width: "90%",
+        height: "70%",
+        resizeMode: "contain",
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: "#D7CCC8",
+    },
+});
