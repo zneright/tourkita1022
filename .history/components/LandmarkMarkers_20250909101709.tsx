@@ -210,7 +210,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     }}
                 />
             </ShapeSource>
-            
+            {/* EventDetailModal */}
             {selectedEvent && (
                 <EventDetailModal
                     event={selectedEvent}

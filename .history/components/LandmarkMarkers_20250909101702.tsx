@@ -174,7 +174,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     setShowEventListModal(true);
                 }
             } else {
-                
+                // normal landmarks
                 setSelectedLandmark(landmark);
             }
         } catch (error) {
@@ -210,7 +210,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     }}
                 />
             </ShapeSource>
-            
+            {/* EventDetailModal */}
             {selectedEvent && (
                 <EventDetailModal
                     event={selectedEvent}

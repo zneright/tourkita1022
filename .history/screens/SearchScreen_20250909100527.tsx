@@ -83,24 +83,32 @@ const SearchScreen = () => {
         const now = new Date();
 
         const relevantEvents = events.filter((event) => {
+            // Skip null/undefined events
             if (!event) return false;
+
+            // Skip events that do not belong to this marker
             if (event.locationId !== markerId) return false;
+
+            // Skip events open to the public
             if (event.openToPublic) return false;
 
-            const startDate = event.startDate ? new Date(event.startDate) : null;
+            // Skip events without startDate
+            if (!event.startDate) return false;
+
+            const startDate = new Date(event.startDate);
             const endDate = event.endDate ? new Date(event.endDate) : startDate;
-            if (!startDate) return false;
 
-            if (now < startDate || now > (endDate || startDate)) return false;
+            // Skip events that are not happening today
+            if (now < startDate || now > endDate) return false;
 
-            if (event.recurrence?.daysOfWeek && event.recurrence.daysOfWeek.length > 0) {
+            // Handle recurrence
+            if (event.recurrence?.daysOfWeek?.length) {
                 const todayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-                if (!event.recurrence.daysOfWeek.map(d => d.toLowerCase()).includes(todayName)) {
-                    return false;
-                }
+                const recurrenceDays = event.recurrence.daysOfWeek.map(d => d.toLowerCase());
+                if (!recurrenceDays.includes(todayName)) return false;
             }
 
-            // Check time
+            // Check event start/end times
             const [startHour, startMinute] = event.eventStartTime?.split(":").map(Number) ?? [0, 0];
             const [endHour, endMinute] = event.eventEndTime?.split(":").map(Number) ?? [23, 59];
 
@@ -110,11 +118,13 @@ const SearchScreen = () => {
             const eventEnd = new Date(now);
             eventEnd.setHours(endHour, endMinute, 0, 0);
 
+            // Return true if now is within the event time
             return now >= eventStart && now <= eventEnd;
         });
 
         return relevantEvents.length > 0;
     };
+
 
 
 
@@ -129,7 +139,7 @@ const SearchScreen = () => {
 
         if (!today || today.closed) return "Closed today";
 
-
+        // Check for 24-hour opening
         if (today.open === "00:00" && today.close === "23:59") return "Open 24 hours";
 
         const [openHour, openMinute] = today.open.split(":").map(Number);

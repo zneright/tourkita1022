@@ -33,7 +33,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
 
                 if (selectedCategory === "Events") {
                     const snapshot = await getDocs(collection(db, "events"));
-                    const today = format(new Date(), "EEE").toLowerCase(); 
+                    const today = format(new Date(), "EEE").toLowerCase(); // e.g. "mon"
                     const todayDate = new Date();
 
                     const fetched: any[] = [];
@@ -174,7 +174,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     setShowEventListModal(true);
                 }
             } else {
-                
+                // normal landmarks
                 setSelectedLandmark(landmark);
             }
         } catch (error) {
@@ -210,7 +210,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     }}
                 />
             </ShapeSource>
-            
+            {/* EventDetailModal */}
             {selectedEvent && (
                 <EventDetailModal
                     event={selectedEvent}

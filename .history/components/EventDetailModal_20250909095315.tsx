@@ -23,7 +23,6 @@ interface Props {
     event: EventType | null;
 }
 
-
 type EventType = {
     title: string;
     description?: string;
@@ -69,14 +68,9 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
 
         fetchMarkerName();
     }, [event]);
-    if (!event) {
-        return null;
-    }
 
     const start = parse(event.startDate, "yyyy-MM-dd", new Date());
     const end = event.endDate ? parse(event.endDate, "yyyy-MM-dd", start) : start;
-
-
 
     let displayDate = "";
     if (isToday(start) && !event.endDate) {
@@ -108,7 +102,7 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             setLoading(true);
 
             if (event.lat && event.lng) {
-                
+                // Use lat/lng directly
                 const target = {
                     latitude: event.lat,
                     longitude: event.lng,
@@ -218,32 +212,47 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
                         </View>
 
 
-                        <View style={styles.statusCard}>
-                            <Ionicons name="people-outline" size={20} color={publicStatusColor} />
-                            <Text style={[styles.statusText, { color: publicStatusColor }]}>
-                                {publicStatus}
-                            </Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Description</Text>
+                            {event.description ? (
+                                <LinkifiedText text={event.description} />
+                            ) : (
+                                <Text style={styles.description}>No description provided.</Text>
+                            )}
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.navigateButton}
-                            onPress={handleNavigate}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.navigateText}>Navigate</Text>
-                            )}
-                        </TouchableOpacity>
-                    </ScrollView>
-
-                    {/* Full-Screen Image Modal */}
-                    {event.imageUrl && (
-                        <Modal visible={isImageModalVisible} transparent animationType="fade">
-                            <TouchableOpacity
-                                style={styles.modal}
-                                onPress={() => setImageModalVisible(false)}
+// Helper component to render clickable links in text robustly
+const LinkifiedText = ({ text }: { text: string }) => {
+    const urlRegex = /(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)([.,!?)\]]?)/g;
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+    while ((match = urlRegex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            elements.push(text.substring(lastIndex, match.index));
+        }
+        const url = match[1];
+        const trailing = match[2] || '';
+        elements.push(
+            <Text
+                key={key++}
+                style={{ color: '#3498db', textDecorationLine: 'underline' }}
+                onPress={() => Linking.openURL(url)}
+            >
+                {url}
+            </Text>
+        );
+        if (trailing) {
+            elements.push(trailing);
+        }
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+        elements.push(text.substring(lastIndex));
+    }
+    return <Text style={styles.description}>{elements}</Text>;
+};
                                 activeOpacity={1}
                             >
                                 <Image

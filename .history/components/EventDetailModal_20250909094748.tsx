@@ -23,7 +23,6 @@ interface Props {
     event: EventType | null;
 }
 
-
 type EventType = {
     title: string;
     description?: string;
@@ -46,8 +45,10 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
     const [displayAddress, setDisplayAddress] = useState<string>("");
     useEffect(() => {
         const fetchMarkerName = async () => {
+            if (!event) return;
+
             if (event.customAddress) {
-                setDisplayAddress(event.customAddress);
+                setDisplayAddress(`${event.customAddress.label} (${event.customAddress.latitude}, ${event.customAddress.longitude})`);
             } else if (event.locationId) {
                 try {
                     const docRef = doc(db, "markers", event.locationId);
@@ -69,33 +70,7 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
 
         fetchMarkerName();
     }, [event]);
-    if (!event) {
-        return null;
-    }
 
-    const start = parse(event.startDate, "yyyy-MM-dd", new Date());
-    const end = event.endDate ? parse(event.endDate, "yyyy-MM-dd", start) : start;
-
-
-
-    let displayDate = "";
-    if (isToday(start) && !event.endDate) {
-        displayDate = "Today";
-    } else if (start.getTime() === end.getTime()) {
-        displayDate = format(start, "MMMM dd, yyyy");
-    } else {
-        displayDate = `${format(start, "MMMM dd, yyyy")} — ${format(end, "MMMM dd, yyyy")}`;
-    }
-
-    const formatTime = (timeStr?: string) => {
-        if (!timeStr) return "N/A";
-        try {
-            const t = parse(timeStr, "HH:mm", new Date());
-            return format(t, "hh:mm a");
-        } catch {
-            return timeStr;
-        }
-    };
 
     const formattedStartTime = formatTime(event.eventStartTime);
     const formattedEndTime = event.eventEndTime ? formatTime(event.eventEndTime) : null;
@@ -104,16 +79,23 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
     const publicStatusColor = event.openToPublic ? "#27ae60" : "#c0392b";
 
     const handleNavigate = async () => {
+        if (!event) return;
+
         try {
             setLoading(true);
 
-            if (event.lat && event.lng) {
-                
+            if (event.customAddress) {
+                // Use customAddress object
                 const target = {
-                    latitude: event.lat,
-                    longitude: event.lng,
-                    name: event.title,
+                    latitude: event.customAddress.latitude,
+                    longitude: event.customAddress.longitude,
+                    name: event.customAddress.label,
                 };
+                loadDirection(target);
+                navigation.navigate("Maps", target);
+
+            } else if (event.lat && event.lng) {
+                const target = { latitude: event.lat, longitude: event.lng, name: event.title };
                 loadDirection(target);
                 navigation.navigate("Maps", target);
 
@@ -131,7 +113,6 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
                 } else {
                     navigation.navigate("Maps");
                 }
-
             } else {
                 navigation.navigate("Maps");
             }
@@ -143,7 +124,6 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             setLoading(false);
         }
     };
-
 
     return (
         <Modal visible={visible} animationType="slide" transparent>

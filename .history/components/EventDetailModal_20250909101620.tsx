@@ -70,12 +70,11 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
         fetchMarkerName();
     }, [event]);
     if (!event) {
-        return null;
+        return null; 
     }
 
     const start = parse(event.startDate, "yyyy-MM-dd", new Date());
-    const end = event.endDate ? parse(event.endDate, "yyyy-MM-dd", start) : start;
-
+    const end = event.endDate ? parse(event.endDate, "yyyy-MM-dd", start) : star
 
 
     let displayDate = "";
@@ -108,7 +107,7 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             setLoading(true);
 
             if (event.lat && event.lng) {
-                
+                // Use lat/lng directly
                 const target = {
                     latitude: event.lat,
                     longitude: event.lng,

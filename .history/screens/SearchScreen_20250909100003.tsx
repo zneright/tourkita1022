@@ -82,40 +82,36 @@ const SearchScreen = () => {
     const isClosedDueToPrivateEvent = (markerId: string): boolean => {
         const now = new Date();
 
-        const relevantEvents = events.filter((event) => {
-            if (!event) return false;
-            if (event.locationId !== markerId) return false;
-            if (event.openToPublic) return false;
+      const relevantEvents = events.filter((event) => {
+    if (!event) return false; // <-- prevent null/undefined
+    if (event.locationId !== markerId) return false;
+    if (event.openToPublic) return false;
 
-            const startDate = event.startDate ? new Date(event.startDate) : null;
-            const endDate = event.endDate ? new Date(event.endDate) : startDate;
-            if (!startDate) return false;
+    const startDate = event.startDate ? new Date(event.startDate) : null;
+    const endDate = event.endDate ? new Date(event.endDate) : startDate;
+    if (!startDate) return false;
 
-            if (now < startDate || now > (endDate || startDate)) return false;
+    if (now < startDate || now > (endDate || startDate)) return false;
 
-            if (event.recurrence?.daysOfWeek && event.recurrence.daysOfWeek.length > 0) {
-                const todayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-                if (!event.recurrence.daysOfWeek.map(d => d.toLowerCase()).includes(todayName)) {
-                    return false;
-                }
-            }
+    if (event.recurrence?.daysOfWeek && event.recurrence.daysOfWeek.length > 0) {
+        const todayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+        if (!event.recurrence.daysOfWeek.map(d => d.toLowerCase()).includes(todayName)) {
+            return false;
+        }
+    }
 
-            // Check time
-            const [startHour, startMinute] = event.eventStartTime?.split(":").map(Number) ?? [0, 0];
-            const [endHour, endMinute] = event.eventEndTime?.split(":").map(Number) ?? [23, 59];
+    // Check time
+    const [startHour, startMinute] = event.eventStartTime?.split(":").map(Number) ?? [0, 0];
+    const [endHour, endMinute] = event.eventEndTime?.split(":").map(Number) ?? [23, 59];
 
-            const eventStart = new Date(now);
-            eventStart.setHours(startHour, startMinute, 0, 0);
+    const eventStart = new Date(now);
+    eventStart.setHours(startHour, startMinute, 0, 0);
 
-            const eventEnd = new Date(now);
-            eventEnd.setHours(endHour, endMinute, 0, 0);
+    const eventEnd = new Date(now);
+    eventEnd.setHours(endHour, endMinute, 0, 0);
 
-            return now >= eventStart && now <= eventEnd;
-        });
-
-        return relevantEvents.length > 0;
-    };
-
+    return now >= eventStart && now <= eventEnd;
+});
 
 
     // open ba?!
@@ -129,7 +125,7 @@ const SearchScreen = () => {
 
         if (!today || today.closed) return "Closed today";
 
-
+        // Check for 24-hour opening
         if (today.open === "00:00" && today.close === "23:59") return "Open 24 hours";
 
         const [openHour, openMinute] = today.open.split(":").map(Number);
@@ -174,6 +170,7 @@ const SearchScreen = () => {
                 const qEvents = query(collection(db, "events"));
                 const snapshotEvents = await getDocs(qEvents);
 
+
                 const eventsData = snapshotEvents.docs.map((doc) => {
                     const d = doc.data();
 
@@ -195,8 +192,8 @@ const SearchScreen = () => {
                         address: address,
                         eventStartTime: d.eventStartTime,
                         eventEndTime: d.eventEndTime,
-                        startDate: d.startDate,
-                        endDate: d.endDate,
+                        startDate: d.startDate || "",
+                        endDate: d.endDate || "",
                         openToPublic: d.openToPublic ?? false,
                         recurrence: d.recurrence || {},
                     };

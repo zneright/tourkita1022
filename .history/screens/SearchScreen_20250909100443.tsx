@@ -83,24 +83,24 @@ const SearchScreen = () => {
         const now = new Date();
 
         const relevantEvents = events.filter((event) => {
-            if (!event) return false;
+            if (!event) return false; // skip null or undefined
+            if (!event.startDate) return false; // skip events with no startDate
             if (event.locationId !== markerId) return false;
             if (event.openToPublic) return false;
 
-            const startDate = event.startDate ? new Date(event.startDate) : null;
+            const startDate = new Date(event.startDate);
             const endDate = event.endDate ? new Date(event.endDate) : startDate;
-            if (!startDate) return false;
 
-            if (now < startDate || now > (endDate || startDate)) return false;
+            const now = new Date();
+            if (now < startDate || now > endDate) return false;
 
-            if (event.recurrence?.daysOfWeek && event.recurrence.daysOfWeek.length > 0) {
+            // Recurring check
+            if (event.recurrence?.daysOfWeek?.length) {
                 const todayName = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-                if (!event.recurrence.daysOfWeek.map(d => d.toLowerCase()).includes(todayName)) {
-                    return false;
-                }
+                if (!event.recurrence.daysOfWeek.map(d => d.toLowerCase()).includes(todayName)) return false;
             }
 
-            // Check time
+            // Check event time
             const [startHour, startMinute] = event.eventStartTime?.split(":").map(Number) ?? [0, 0];
             const [endHour, endMinute] = event.eventEndTime?.split(":").map(Number) ?? [23, 59];
 
@@ -112,6 +112,7 @@ const SearchScreen = () => {
 
             return now >= eventStart && now <= eventEnd;
         });
+
 
         return relevantEvents.length > 0;
     };
@@ -129,7 +130,7 @@ const SearchScreen = () => {
 
         if (!today || today.closed) return "Closed today";
 
-
+        // Check for 24-hour opening
         if (today.open === "00:00" && today.close === "23:59") return "Open 24 hours";
 
         const [openHour, openMinute] = today.open.split(":").map(Number);

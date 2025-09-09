@@ -23,7 +23,6 @@ interface Props {
     event: EventType | null;
 }
 
-
 type EventType = {
     title: string;
     description?: string;
@@ -44,58 +43,34 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
     const [loading, setLoading] = useState(false);
     const [isImageModalVisible, setImageModalVisible] = useState(false);
     const [displayAddress, setDisplayAddress] = useState<string>("");
-    useEffect(() => {
-        const fetchMarkerName = async () => {
-            if (event.customAddress) {
-                setDisplayAddress(event.customAddress);
-            } else if (event.locationId) {
-                try {
-                    const docRef = doc(db, "markers", event.locationId);
-                    const snap = await getDoc(docRef);
-                    if (snap.exists()) {
-                        const marker = snap.data() as any;
-                        setDisplayAddress(marker.name || "N/A");
-                    } else {
-                        setDisplayAddress("N/A");
-                    }
-                } catch (err) {
-                    console.error("Failed to fetch marker:", err);
+   useEffect(() => {
+    const fetchMarkerName = async () => {
+        if (!event) return;
+
+        if (event.customAddress) {
+            setDisplayAddress(`${event.customAddress.label} (${event.customAddress.latitude}, ${event.customAddress.longitude})`);
+        } else if (event.locationId) {
+            try {
+                const docRef = doc(db, "markers", event.locationId);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const marker = snap.data() as any;
+                    setDisplayAddress(marker.name || "N/A");
+                } else {
                     setDisplayAddress("N/A");
                 }
-            } else {
-                setDisplayAddress(event.address || "N/A");
+            } catch (err) {
+                console.error("Failed to fetch marker:", err);
+                setDisplayAddress("N/A");
             }
-        };
-
-        fetchMarkerName();
-    }, [event]);
-    if (!event) {
-        return null;
-    }
-
-    const start = parse(event.startDate, "yyyy-MM-dd", new Date());
-    const end = event.endDate ? parse(event.endDate, "yyyy-MM-dd", start) : start;
-
-
-
-    let displayDate = "";
-    if (isToday(start) && !event.endDate) {
-        displayDate = "Today";
-    } else if (start.getTime() === end.getTime()) {
-        displayDate = format(start, "MMMM dd, yyyy");
-    } else {
-        displayDate = `${format(start, "MMMM dd, yyyy")} — ${format(end, "MMMM dd, yyyy")}`;
-    }
-
-    const formatTime = (timeStr?: string) => {
-        if (!timeStr) return "N/A";
-        try {
-            const t = parse(timeStr, "HH:mm", new Date());
-            return format(t, "hh:mm a");
-        } catch {
-            return timeStr;
+        } else {
+            setDisplayAddress(event.address || "N/A");
         }
     };
+
+    fetchMarkerName();
+}, [event]);
+
 
     const formattedStartTime = formatTime(event.eventStartTime);
     const formattedEndTime = event.eventEndTime ? formatTime(event.eventEndTime) : null;
@@ -108,7 +83,7 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             setLoading(true);
 
             if (event.lat && event.lng) {
-                
+                // Use lat/lng directly
                 const target = {
                     latitude: event.lat,
                     longitude: event.lng,

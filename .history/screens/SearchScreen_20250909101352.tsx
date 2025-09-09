@@ -129,7 +129,7 @@ const SearchScreen = () => {
 
         if (!today || today.closed) return "Closed today";
 
-
+        // Check for 24-hour opening
         if (today.open === "00:00" && today.close === "23:59") return "Open 24 hours";
 
         const [openHour, openMinute] = today.open.split(":").map(Number);

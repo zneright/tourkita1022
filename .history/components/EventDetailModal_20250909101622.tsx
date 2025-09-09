@@ -108,7 +108,7 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
             setLoading(true);
 
             if (event.lat && event.lng) {
-                
+                // Use lat/lng directly
                 const target = {
                     latitude: event.lat,
                     longitude: event.lng,
