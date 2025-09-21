@@ -8,6 +8,8 @@ import {
     TouchableOpacity,
     StatusBar,
     ActivityIndicator,
+    Button,
+    Switch,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -44,10 +46,10 @@ export default function MapsScreen() {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [showCategories, setShowCategories] = useState(true);
     const [showBottomNav, setShowBottomNav] = useState(true);
-
+    const [currentMap, setCurrentMap] = useState("mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7")
     const [selectedCategory, setSelectedCategory] = useState<string>("All");
     const [isLoading, setIsLoading] = useState(false);
-
+    const [visible, setVisible] = useState(true)
     const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
         onActive: (event) => {
             scale.value = event.scale;
@@ -109,7 +111,7 @@ export default function MapsScreen() {
                 <View style={styles.mapContainer}>
                     <MapView
                         style={styles.map}
-                        styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
+                        styleURL={currentMap}
                         rotateEnabled
                     >
                    
@@ -128,7 +130,7 @@ export default function MapsScreen() {
                             pulsing={{ isEnabled: true }}
                             androidRenderMode="gps"
                         />
-                        <LineBoundary />
+                        <LineBoundary visible={visible} />
                         <LandmarkMarkers
                             selectedCategory={selectedCategory}
                             onLoadingChange={setIsLoading}
@@ -138,6 +140,58 @@ export default function MapsScreen() {
                             <LineRoute coordinates={directionCoordinates} />
                         )}
                     </MapView>
+                        
+                    <TouchableOpacity
+                        onPress={() => setVisible(!visible)}
+                        style={{
+                            position: "absolute",
+                            top: 40,
+                            left: 20,
+                            backgroundColor: visible ? "#EF4444" : "#22C55E", 
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                        }}
+                    >
+                        <Text style={{ color: "white", fontWeight: "bold" }}>
+                            {visible ? "Hide" : "Show"}
+                        </Text>
+                    </TouchableOpacity>
+                    <View
+                        style={{
+                            position: "absolute",
+                            bottom: 70,
+                            right: 20,
+                            backgroundColor: "white",
+                            padding: 10,
+                            borderRadius: 8,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            elevation: 4,
+                        }}
+                    >
+                       {showBottomNav && (
+                        <View style={{alignItems: "center" }}>
+                          
+                        <Text style={{ marginRight: 8, fontWeight: "600",}}>
+                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Street" : "Satellite"}
+                        </Text>
+                        <Switch
+                      
+                            value={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"}
+                            onValueChange={(val) => {
+                                setCurrentMap(
+                                    val
+                                        ? "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
+                                        : "mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y"
+                                );
+                            }}
+                            trackColor={{ false: "#d1d5db", true: "#22c55e" }}
+                            thumbColor={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "#16a34a" : "#f4f3f4"}
+                        />
+                            </View>
+                       )} 
+                    </View>
 
                     {isLoading && (
                         <View style={styles.loadingOverlay}>
