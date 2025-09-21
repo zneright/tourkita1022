@@ -22,7 +22,7 @@ import Animated, {
 import TopHeader from "../components/TopHeader";
 import { Feather } from "@expo/vector-icons";
 import BottomFooter from "../components/BottomFooter";
-import Mapbox, { Camera, LocationPuck, MapView } from '@rnmapbox/maps';
+import Mapbox, { Camera, LocationPuck, MapView,  } from '@rnmapbox/maps';
 import LandmarkMarkers from "../components/LandmarkMarkers";
 import LineRoute from "../components/LineRoute";
 import { useLandmark } from "../provider/LandmarkProvider";
@@ -109,8 +109,12 @@ export default function MapsScreen() {
                 <View style={styles.mapContainer}>
                     <MapView
                         style={styles.map}
-                        styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
+                        styleURL="mapbox://styles/mapbox/streets-v12"
                         rotateEnabled
+                        onPress={(event) => {
+                            const { geometry } = event;
+                            console.log("User tapped at:", geometry.coordinates);
+                        }}
                     >
                         <Camera
                             zoomLevel={15}
@@ -131,6 +135,7 @@ export default function MapsScreen() {
                         <LandmarkMarkers
                             selectedCategory={selectedCategory}
                             onLoadingChange={setIsLoading}
+                            
                         />
                         {showDirection && directionCoordinates && (
                             <LineRoute coordinates={directionCoordinates} />

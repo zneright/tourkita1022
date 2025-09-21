@@ -13,19 +13,20 @@ import { useLandmark } from "../provider/LandmarkProvider";
 import Entypo from "@expo/vector-icons/Entypo";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
 import { Linking } from "react-native";
 
 import SkeletonBox from "../components/Skeleton";
+import ModeSelector from "./ModeSelector";
 export default function SelectedLandmarkSheet() {
     const [isImageModalVisible, setImageModalVisible] = useState(false);
     const [averageRating, setAverageRating] = useState<number | null>(null);
     const [reviewCount, setReviewCount] = useState<number>(0);
     const [eventInProgress, setEventInProgress] = useState(false);
-    const { selectedLandmark, duration, distance, loadingDirection, loadDirection } = useLandmark() as any;
+    const { selectedLandmark, duration, distance, loadingDirection, loadDirection, mode, setMode } = useLandmark() as any;
 
     const bottomSheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "90%"], []);
@@ -33,6 +34,12 @@ export default function SelectedLandmarkSheet() {
 
     const [loadingSheet, setLoadingSheet] = useState(true);
     const [resolvedAddress, setResolvedAddress] = useState<string>("");
+
+
+    const handleModeChange = (newMode: string) => {
+        setMode(newMode);
+        loadDirection(undefined, newMode); 
+    };
     //  Pag pinindot ang markers
     useEffect(() => {
         if (selectedLandmark) {
@@ -261,7 +268,7 @@ export default function SelectedLandmarkSheet() {
                                     {loadingDirection ? (
                                         <ActivityIndicator size="small" />
                                     ) : (
-                                        <Text>{(duration / 1000).toFixed(2)} km</Text>
+                                        <Text>{( distance / 1000).toFixed(2)} km</Text>
                                     )}
                                 </View>
                                 <View style={styles.iconTextRow}>
@@ -269,7 +276,7 @@ export default function SelectedLandmarkSheet() {
                                     {loadingDirection ? (
                                         <ActivityIndicator size="small" />
                                     ) : (
-                                        <Text>{(distance / 60).toFixed(0)} min</Text>
+                                        <Text>{(duration / 60).toFixed(0)} min</Text>
                                     )}
                                 </View>
                             </View>
@@ -310,6 +317,8 @@ export default function SelectedLandmarkSheet() {
                                             : "Free"}
                                     </Text>
                                 </View>
+                                   
+                                <ModeSelector/>
                             </View>
                         </View>
                         <View style={styles.section}>
