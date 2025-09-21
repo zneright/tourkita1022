@@ -109,13 +109,10 @@ export default function MapsScreen() {
                 <View style={styles.mapContainer}>
                     <MapView
                         style={styles.map}
-                        styleURL="mapbox://styles/mapbox/streets-v12"
+                        styleURL="mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
                         rotateEnabled
-                        onPress={(event) => {
-                            const { geometry } = event;
-                            console.log("User tapped at:", geometry.coordinates);
-                        }}
                     >
+                   
                         <Camera
                             zoomLevel={15}
                             centerCoordinate={[120.97542723276051, 14.591293316236834]}
