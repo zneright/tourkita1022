@@ -64,7 +64,7 @@ export default function CategoryFilter({ selectedCategory, onSelectCategory }: P
 const styles = StyleSheet.create({
     container: {
         backgroundColor: "#493628",
-        paddingVertical: 6,
+        paddingVertical: 20,
         paddingHorizontal: 8,
     },
     scrollContainer: {

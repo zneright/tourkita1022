@@ -189,27 +189,26 @@ export default function MapsScreen() {
                             elevation: 4,
                         }}
                     >
-                        {showBottomNav && (
-                            <View style={{ alignItems: "center" }}>
+                        <View style={{ alignItems: "center" }}>
 
-                                <Text style={{ marginRight: 8, fontWeight: "600", }}>
-                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Standard" : "Satellite"}
-                                </Text>
-                                <Switch
+                            <Text style={{ marginRight: 8, fontWeight: "600", }}>
+                                {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Standard" : "Satellite"}
+                            </Text>
+                            <Switch
 
-                                    value={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"}
-                                    onValueChange={(val) => {
-                                        setCurrentMap(
-                                            val
-                                                ? "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
-                                                : "mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y"
-                                        );
-                                    }}
-                                    trackColor={{ false: "#d1d5db", true: "#22c55e" }}
-                                    thumbColor={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "#16a34a" : "#f4f3f4"}
-                                />
-                            </View>
-                        )}
+                                value={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"}
+                                onValueChange={(val) => {
+                                    setCurrentMap(
+                                        val
+                                            ? "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7"
+                                            : "mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y"
+                                    );
+                                }}
+                                trackColor={{ false: "#d1d5db", true: "#22c55e" }}
+                                thumbColor={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "#16a34a" : "#f4f3f4"}
+                            />
+                        </View>
+
                     </View>
 
                     {showBottomNav && (

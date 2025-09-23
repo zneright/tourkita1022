@@ -17,7 +17,7 @@ export default function CategoryFilter({ selectedCategory, onSelectCategory }: P
     const categories = [
 
         { label: "All", uri: "https://img.icons8.com/ios-filled/100/9c8061/globe.png" },
-
+        
         { label: "Events", uri: "https://img.icons8.com/ios-filled/100/9c8061/calendar.png" },
         { label: "Historical", uri: "https://img.icons8.com/ios-filled/100/9c8061/monument.png" },
         { label: "Food", uri: "https://img.icons8.com/ios-filled/100/9c8061/restaurant.png" },
@@ -64,7 +64,7 @@ export default function CategoryFilter({ selectedCategory, onSelectCategory }: P
 const styles = StyleSheet.create({
     container: {
         backgroundColor: "#493628",
-        paddingVertical: 6,
+        paddingVertical: 10,
         paddingHorizontal: 8,
     },
     scrollContainer: {

@@ -50,29 +50,20 @@ const EventDetailModal: React.FC<Props> = ({ visible, onClose, event }) => {
     const [displayAddress, setDisplayAddress] = useState<string>("");
     useEffect(() => {
         const fetchMarkerName = async () => {
-            if (!event) return;
+            if (!formData?.locationId) return;
 
-            if (event.customAddress) {
-                if (typeof event.customAddress === "string") {
-                    setDisplayAddress(event.customAddress);
-                } else {
-                    setDisplayAddress(event.customAddress.label || "N/A");
+            try {
+                const markerDoc = await getDoc(doc(db, "markers", formData.locationId));
+                if (markerDoc.exists()) {
+                    setMarkerName(markerDoc.data().name);
                 }
-            } else if (event.locationId) {
-                try {
-                    const docRef = doc(db, "markers", event.locationId);
-                    const snap = await getDoc(docRef);
-                    setDisplayAddress(snap.exists() ? snap.data()?.name || "N/A" : "N/A");
-                } catch {
-                    setDisplayAddress("N/A");
-                }
-            } else {
-                setDisplayAddress(event.address || "N/A");
+            } catch (err) {
+                console.error("Error fetching marker name:", err);
             }
         };
 
         fetchMarkerName();
-    }, [event]);
+    }, [formData?.locationId]);
 
     if (!event) {
         return null;

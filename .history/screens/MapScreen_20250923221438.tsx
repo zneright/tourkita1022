@@ -193,7 +193,7 @@ export default function MapsScreen() {
                             <View style={{ alignItems: "center" }}>
 
                                 <Text style={{ marginRight: 8, fontWeight: "600", }}>
-                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Standard" : "Satellite"}
+                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Map" : "Satellite"}
                                 </Text>
                                 <Switch
 

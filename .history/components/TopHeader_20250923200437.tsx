@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: "#493628",
-        paddingVertical: 15,
+        paddingVertical: 10,
         paddingHorizontal: 20,
     },
     headerText: {

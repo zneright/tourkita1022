@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: "#493628",
-        paddingVertical: 15,
+        paddingVertical: 20,
         paddingHorizontal: 20,
     },
     headerText: {
@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
         alignItems: "flex-start",
     },
     placeholder: {
-        width: 24,
+        width: 24, 
     },
 });

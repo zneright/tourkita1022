@@ -189,7 +189,6 @@ export default function MapsScreen() {
                             elevation: 4,
                         }}
                     >
-                        {showBottomNav && (
                             <View style={{ alignItems: "center" }}>
 
                                 <Text style={{ marginRight: 8, fontWeight: "600", }}>

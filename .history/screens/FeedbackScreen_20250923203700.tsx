@@ -155,16 +155,9 @@ const FeedbackScreen = () => {
             Alert.alert("Error", "Please select an app feature.");
             return;
         }
-        if (feedbackType === "Location Feedback") {
-            if (!selectedLocation) {
-                Alert.alert("Error", "Please enter a location.");
-                return;
-            }
-            // ✅ Validate if the location exists in markers
-            if (!locations.includes(selectedLocation)) {
-                Alert.alert("Error", "Please select a valid location from the markers.");
-                return;
-            }
+        if (feedbackType === "Location Feedback" && !selectedLocation) {
+            Alert.alert("Error", "Please enter a location.");
+            return;
         }
         if (!comment.trim()) {
             Alert.alert("Error", "Please add a comment.");
@@ -209,6 +202,7 @@ const FeedbackScreen = () => {
             setIsSubmitting(false);
         }
     };
+
 
 
     return (

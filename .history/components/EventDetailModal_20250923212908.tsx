@@ -16,6 +16,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useLandmark } from "../provider/LandmarkProvider";
 import { Linking } from "react-native";
+import { parseISO, isSameDay } from "date-fns";
 
 interface Props {
     visible: boolean;
