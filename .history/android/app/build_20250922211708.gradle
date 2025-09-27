@@ -91,6 +91,7 @@ android {
         applicationId 'com.ryanchico.tourkita'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
         versionName "1.0.0"
     }
     signingConfigs {
@@ -137,7 +138,6 @@ android {
     for (i in 0..<options.size()) options[i] = options[i].trim();
     // `[] - ""` is essentially `[""].filter(Boolean)` removing all empty strings.
     options -= ""
-
 
     if (options.length > 0) {
         println "android.packagingOptions.$prop += $options ($options.length)"

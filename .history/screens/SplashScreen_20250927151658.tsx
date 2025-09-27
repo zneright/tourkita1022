@@ -29,10 +29,12 @@ export default function SplashScreen({ navigation }: any) {
             }),
         ]).start();
 
+        // Check internet connection
         const unsubscribe = NetInfo.addEventListener((state) => {
             setIsConnected(state.isConnected);
         });
 
+        // Simulate loading (e.g., fetching config, assets)
         const timeout = setTimeout(() => {
             if (isConnected) {
                 navigation.replace("Login");
@@ -58,12 +60,14 @@ export default function SplashScreen({ navigation }: any) {
                     { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
                 ]}
             >
+                {/* Main Logo */}
                 <Image
                     source={require("../assets/TourkitaLogo.jpg")}
                     style={styles.appLogo}
                     resizeMode="contain"
                 />
 
+                {/* Tagline */}
                 <Text style={styles.tagline}>
                     Explore the beauty of Intramuros
                 </Text>

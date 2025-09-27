@@ -1,15 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View, Image, StyleSheet, Animated, Text, Alert } from "react-native";
-import NetInfo from "@react-native-community/netinfo";
+import React, { useEffect, useRef } from "react";
+import { View, Image, StyleSheet, Animated, Text } from "react-native";
 
 export default function SplashScreen({ navigation }: any) {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(0.8)).current;
     const loadingProgress = useRef(new Animated.Value(0)).current;
-    const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
     useEffect(() => {
-        // Run animations
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -24,49 +21,27 @@ export default function SplashScreen({ navigation }: any) {
             }),
             Animated.timing(loadingProgress, {
                 toValue: 1,
-                duration: 3500,
+                duration: 2800,
                 useNativeDriver: false,
             }),
         ]).start();
 
-        const unsubscribe = NetInfo.addEventListener((state) => {
-            setIsConnected(state.isConnected);
-        });
-
         const timeout = setTimeout(() => {
-            if (isConnected) {
-                navigation.replace("Login");
-            } else {
-                Alert.alert(
-                    "No Internet",
-                    "Please check your connection and restart the app."
-                );
-            }
-        }, 3500);
+            navigation.replace("Login");
+        }, 2800);
 
-        return () => {
-            clearTimeout(timeout);
-            unsubscribe();
-        };
-    }, [navigation, fadeAnim, scaleAnim, loadingProgress, isConnected]);
+        return () => clearTimeout(timeout);
+    }, [navigation, fadeAnim, scaleAnim, loadingProgress]);
 
     return (
         <View style={styles.container}>
-            <Animated.View
-                style={[
-                    styles.innerContainer,
-                    { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
-                ]}
-            >
+            <Animated.View style={[styles.innerContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
                 <Image
-                    source={require("../assets/TourkitaLogo.jpg")}
+                    source={require('../assets/TourkitaLogo.jpg')}
                     style={styles.appLogo}
                     resizeMode="contain"
                 />
-
-                <Text style={styles.tagline}>
-                    Explore the beauty of Intramuros
-                </Text>
+                <Text style={styles.tagline}>Explore the beauty of Intramuros</Text>
 
                 <Image
                     source={{
@@ -80,23 +55,14 @@ export default function SplashScreen({ navigation }: any) {
 
                 <View style={styles.progressContainer}>
                     <Animated.View
-                        style={[
-                            styles.progressBar,
-                            {
-                                width: loadingProgress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ["0%", "100%"],
-                                }),
-                            },
-                        ]}
+                        style={[styles.progressBar, {
+                            width: loadingProgress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%'],
+                            })
+                        }]}
                     />
                 </View>
-
-                {isConnected === false && (
-                    <Text style={styles.errorText}>
-                        No internet connection detected...
-                    </Text>
-                )}
             </Animated.View>
         </View>
     );
@@ -141,21 +107,15 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     progressContainer: {
-        width: "80%",
+        width: '80%',
         height: 8,
         backgroundColor: "#e0e0e0",
         borderRadius: 4,
         marginTop: 20,
     },
     progressBar: {
-        height: "100%",
+        height: '100%',
         backgroundColor: "#603F26",
         borderRadius: 4,
-    },
-    errorText: {
-        marginTop: 10,
-        color: "red",
-        fontSize: 14,
-        fontWeight: "500",
     },
 });

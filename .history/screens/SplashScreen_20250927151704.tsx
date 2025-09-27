@@ -29,6 +29,7 @@ export default function SplashScreen({ navigation }: any) {
             }),
         ]).start();
 
+        // Check internet connection
         const unsubscribe = NetInfo.addEventListener((state) => {
             setIsConnected(state.isConnected);
         });
