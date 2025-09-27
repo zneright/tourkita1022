@@ -14,20 +14,20 @@ function ARScene() {
 
   return (
     <ViroARScene>
-      <ViroAmbientLight color="#FFFFFF" />
-
+        <ViroAmbientLight color="#FFFFFF" />
+      
       <ViroNode position={[1, -.3, -1]} scale={isLoaded ? [0.3, 0.3, 0.3] : [0.001, 0.001, 0.001]}>
-
-        <Viro3DObject
-
+      
+            <Viro3DObject 
+                
           source={{
             uri: 'https://raw.githubusercontent.com/google/filament/main/third_party/models/DamagedHelmet/DamagedHelmet.glb'
           }}
-          type="GLB"
-          onLoadEnd={() => setIsLoaded(true)}
-
-        />
-      </ViroNode>
+                type="GLB"
+                onLoadEnd={() => setIsLoaded(true)}
+      
+            />
+        </ViroNode>
 
       <ViroNode position={[-1, -.3, -1]} scale={isLoaded ? [0.3, 0.3, 0.3] : [0.001, 0.001, 0.001]}>
 
@@ -45,25 +45,25 @@ function ARScene() {
 
         <Viro3DObject
           source={{ uri: 'https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb' }}
-
+          
           type="GLB"
           onLoadEnd={() => setIsLoaded(true)}
 
         />
       </ViroNode>
 
+      
 
-
-
+  
 
     </ViroARScene>
-  )
+)
 }
 
 export function CameraPan() {
   return (
     <View style={styles.container}>
-
+     
       <ViroARSceneNavigator
         autofocus={true}
         initialScene={{ scene: ARScene }}

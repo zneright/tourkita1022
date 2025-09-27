@@ -271,6 +271,7 @@ const FeedbackScreen = () => {
                                 <Picker.Item label="Accessibility" value="Accessibility" />
                                 <Picker.Item label="Bug Report" value="Bug" />
                                 <Picker.Item label="Feature Request" value="Feature Request" />
+                                <Picker.Item label="Customer Support" value="Support" />
                                 <Picker.Item label="Others" value="Others" />
                             </Picker>
                         </View>

@@ -267,10 +267,12 @@ const FeedbackScreen = () => {
                                 <Picker.Item label="Search" value="Search" />
                                 <Picker.Item label="Performance" value="Performance" />
                                 <Picker.Item label="AR Cam" value="AR Cam" />
+                                <Picker.Item label="User Experience" value="UX" />
                                 <Picker.Item label="Content Accuracy" value="Content" />
                                 <Picker.Item label="Accessibility" value="Accessibility" />
                                 <Picker.Item label="Bug Report" value="Bug" />
                                 <Picker.Item label="Feature Request" value="Feature Request" />
+                                <Picker.Item label="Customer Support" value="Support" />
                                 <Picker.Item label="Others" value="Others" />
                             </Picker>
                         </View>
