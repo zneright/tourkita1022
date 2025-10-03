@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -33,9 +33,8 @@ import * as Location from 'expo-location';
 import WeatherProvider from "../provider/WeatherProvider";
 import CategoryFilter from "../components/CategoryFilter";
 import { set } from "date-fns";
-import { useRoute } from "@react-navigation/native";
-
-
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import LottieView from "lottie-react-native";
 const screenWidth = Dimensions.get("window").width;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
@@ -50,14 +49,41 @@ export default function MapsScreen() {
     const [showCategories, setShowCategories] = useState(true);
     const [showBottomNav, setShowBottomNav] = useState(true);
     const [currentMap, setCurrentMap] = useState("mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7")
-    const route = useRoute<any>();
-    const [selectedCategory, setSelectedCategory] = useState<string>(
-        route.params?.category || "All"
-    );
-
+    const [selectedCategory, setSelectedCategory] = useState<string>("All");
     const [isLoading, setIsLoading] = useState(false);
     const [visible, setVisible] = useState(true)
     const [showUpdate, setShowUpdate] = useState(true);
+    const [navigationMode, setNavigationMode] = useState(false);
+    const cameraRef = useRef<Camera>(null);
+    const expandMap = useRef<Camera>(null);
+
+    const PH_BOUNDS = {
+        ne: [127.0, 21.0],
+        sw: [116.0, 4.5],
+    };
+    const MANILA_BOUNDS = {
+        ne: [120.98057084428427, 14.599918973377212],
+        sw: [120.96574001513486, 14.576564367241561],
+
+    };
+    const toggleNavigation = () => {
+        if (navigationMode) {
+
+            setNavigationMode(false);
+
+
+            cameraRef.current?.setCamera({
+                centerCoordinate: undefined,
+                zoomLevel: 15,
+                pitch: 0,
+                heading: 0,
+                animationDuration: 1000,
+            });
+        } else {
+
+            setNavigationMode(true);
+        }
+    };
 
     const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
         onActive: (event) => {
@@ -67,11 +93,6 @@ export default function MapsScreen() {
             scale.value = withTiming(1);
         },
     });
-    useEffect(() => {
-        if (route.params?.category) {
-            setSelectedCategory(route.params.category);
-        }
-    }, [route.params?.category]);
 
     const { duration, distance, showDirection, directionCoordinates, } = useLandmark();
 
@@ -131,14 +152,21 @@ export default function MapsScreen() {
                     >
 
                         <Camera
-                            zoomLevel={15}
+                            ref={expandMap}
                             centerCoordinate={[120.97542723276051, 14.591293316236834]}
                             pitch={60}
-                            maxBounds={{
-                                ne: [120.98057084428427, 14.599918973377212],
-                                sw: [120.96574001513486, 14.576564367241561],
-                            }}
+                            ref={cameraRef}
+                            followUserLocation={navigationMode}
+                            followUserMode={navigationMode ? "course" : "normal"}
+                            followZoomLevel={navigationMode ? 20 : undefined}
+                            zoomLevel={!navigationMode ? 15 : undefined}
+                            followPitch={60}
+                            followBearing={true}
+                            maxBounds={PH_BOUNDS}
+
                         />
+
+
                         <LocationPuck
                             puckBearingEnabled={true}
                             puckBearing="heading"
@@ -156,7 +184,39 @@ export default function MapsScreen() {
                             <LineRoute coordinates={directionCoordinates} />
                         )}
                     </MapView>
+                    {showBottomNav && (<View style={styles.buttonContainer}>
 
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={() => {
+                                cameraRef.current?.fitBounds(PH_BOUNDS.ne, PH_BOUNDS.sw, 50, 1000);
+                            }}
+
+                        >
+                            <LottieView
+                                source={require("../assets/earth.json")}
+                                autoPlay
+                                loop
+                                style={{ width: 30, height: 30 }}
+                            />
+                            <Text style={styles.buttonText}>Expand</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={() => {
+                                cameraRef.current?.fitBounds(MANILA_BOUNDS.ne, MANILA_BOUNDS.sw, 50, 1000);
+                            }}
+                        >
+                            <LottieView
+                                source={require("../assets/city.json")}
+                                autoPlay
+                                loop
+                                style={{ width: 30, height: 30 }}
+                            />
+                            <Text style={styles.buttonText}>Manila</Text>
+                        </TouchableOpacity>
+                    </View>
+                    )}
                     {showBottomNav && (
 
                         <TouchableOpacity
@@ -189,11 +249,12 @@ export default function MapsScreen() {
                             elevation: 4,
                         }}
                     >
+
                         {showBottomNav && (
                             <View style={{ alignItems: "center" }}>
 
                                 <Text style={{ marginRight: 8, fontWeight: "600", }}>
-                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Standard" : "Satellite"}
+                                    {currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "Street" : "Satellite"}
                                 </Text>
                                 <Switch
 
@@ -210,10 +271,31 @@ export default function MapsScreen() {
                                 />
                             </View>
                         )}
-                    </View>
 
+                    </View>
+                    {showBottomNav && (
+                        <TouchableOpacity
+                            onPress={toggleNavigation}
+                            style={{
+                                position: "absolute",
+                                bottom: 120,
+                                alignSelf: "center",
+                                backgroundColor: navigationMode ? "#EF4444" : "#3B82F6",
+                                paddingHorizontal: 16,
+                                paddingVertical: 10,
+                                borderRadius: 8,
+                            }}
+                        >
+                            <Text style={{ color: "white", fontWeight: "bold" }}>
+                                {navigationMode ? "Exit Navigation" : "Start Navigation"}
+                            </Text>
+                        </TouchableOpacity>
+
+
+                    )}
                     {showBottomNav && (
                         <View style={styles.infoPanel}>
+
                             <View style={styles.infoItem}>
                                 <FontAwesome5 name="route" size={16} color="#333" />
                                 <Text style={styles.infoText}>
@@ -229,6 +311,8 @@ export default function MapsScreen() {
                         </View>
 
                     )}
+
+
                     <View style={styles.infoPanel2}>
                         <View style={styles.infoItem}>
                             <FontAwesome5 name="route" size={16} color="#333" />
@@ -247,7 +331,7 @@ export default function MapsScreen() {
                     {isLoading && (
                         <View style={styles.loadingOverlay}>
                             <ActivityIndicator size="large" color="#493628" />
-                            <Text style={styles.loadingText}>Loading landmarks...</Text>
+                            <Text style={styles.loadingText}>Reloading</Text>
                         </View>
                     )}
                 </View>
@@ -382,6 +466,35 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "600",
         color: "#333",
+    },
+    buttonContainer: {
+        position: "absolute",
+        bottom: 75,
+        left: 20,
+        flexDirection: "column",
+        gap: 10,
+    },
+    button: {
+        backgroundColor: "white",
+
+        flexDirection: "row",
+        gap: 1,
+        alignItems: "center",
+        justifyContent: "center",
+
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 25,
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    buttonText: {
+        color: "black",
+        fontWeight: "bold",
+        fontSize: 14,
     },
 
 

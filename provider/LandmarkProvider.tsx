@@ -24,7 +24,7 @@ export default function LandmarkProvider({ children }: PropsWithChildren) {
             const newDirection = await getDirections(
                 [userLocation.coords.longitude, userLocation.coords.latitude],
                 [landmark.longitude, landmark.latitude],
-                customMode || mode  
+                customMode || mode
             );
             setDirection(newDirection);
             setShowDirection(true);
@@ -48,8 +48,8 @@ export default function LandmarkProvider({ children }: PropsWithChildren) {
                 setShowDirection,
                 loadingDirection,
                 loadDirection,
-                mode, 
-                setMode       
+                mode,
+                setMode
             }}
         >
             {children}

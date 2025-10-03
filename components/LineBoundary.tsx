@@ -5,10 +5,10 @@ import { ShapeSource, LineLayer, FillLayer, FillExtrusionLayer } from '@rnmapbox
 
 import { Button, View } from 'react-native'
 const LineBoundary = ({ visible }: { visible: boolean }) => {
-   
+
     return (
         <>
-            
+
             <ShapeSource id="linesource" shape={boundaries}>
                 <LineLayer
                     id="lineLayer2"
@@ -18,23 +18,23 @@ const LineBoundary = ({ visible }: { visible: boolean }) => {
                         lineJoin: 'round',
                         lineCap: 'round',
                     }}
-                  
+
                 />
             </ShapeSource>
-            <ShapeSource id = "trademarksSource" shape ={trademarks}>
+            <ShapeSource id="trademarksSource" shape={trademarks}>
                 <FillExtrusionLayer
                     id="mapuaExtrusion"
                     style={{
-                        fillExtrusionColor: "#4F46E5",   // building color
-                        fillExtrusionHeight: 39,         // height in meters
-                        fillExtrusionBase: 0,            // base height (ground level)
+                        fillExtrusionColor: "#4F46E5",
+                        fillExtrusionHeight: 39,
+                        fillExtrusionBase: 0,
                         fillExtrusionOpacity: 0.8,
-                        visibility: visible ? "visible" : "none",     // slightly transparent
+                        visibility: visible ? "visible" : "none",
                     }}
                 />
             </ShapeSource>
-            
-            
+
+
             <View style={{ position: 'absolute', top: 50, right: 20 }}>
                 <Button
                     title={visible ? "Hide Buildings" : "Show Buildings"}

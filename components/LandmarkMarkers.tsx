@@ -33,31 +33,29 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
 
                 if (selectedCategory === "Events") {
                     const snapshot = await getDocs(collection(db, "events"));
-                    const today = new Date(); // current date
+                    const today = format(new Date(), "EEE").toLowerCase();
+                    const todayDate = new Date();
 
                     const fetched: any[] = [];
 
                     for (const docSnap of snapshot.docs) {
                         const data = docSnap.data();
 
-                        const startDate = data.startDate ? parseISO(data.startDate) : null;
-                        const endDate = data.endDate ? parseISO(data.endDate) : startDate;
+                        // check recurrence (daysOfWeek includes today, and date range valid)
+                        const startDate = data.recurrence?.startDate ? parseISO(data.recurrence.startDate) : null;
+                        const endDate = data.recurrence?.endDate ? parseISO(data.recurrence.endDate) : null;
 
-                        if (!startDate) continue;
+                        const isInDateRange =
+                            startDate && endDate
+                                ? isWithinInterval(todayDate, { start: startDate, end: endDate })
+                                : true;
 
-                        const isTodayEvent =
-                            today >= startDate && today <= endDate!;
-
-                        if (!isTodayEvent) continue;
-
-                        if (data.recurrence?.daysOfWeek) {
-                            const weekday = format(today, "EEE").toLowerCase();
-                            if (!data.recurrence.daysOfWeek.includes(weekday)) continue;
-                        }
+                        if (!data.recurrence?.daysOfWeek?.includes(today) || !isInDateRange) continue;
 
                         let lat = data.lat;
                         let lng = data.lng;
 
+                        // if no customAddress, fallback to marker
                         if ((!data.customAddress || data.customAddress.trim() === "") && data.locationId) {
                             try {
                                 const markerDoc = await getDoc(doc(db, "markers", String(data.locationId)));
@@ -190,17 +188,18 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
         <>
             <Images
                 images={{
-                    event: eventIcon,
-                    pin,
-                    restroom,
-                    museum,
-                    historical,
-                    government,
-                    park,
-                    food,
-                    school,
+                    pin: require("../assets/pinB.png"),
+                    restroom: require("../assets/restroom.png"),
+                    museum: require("../assets/museum.png"),
+                    historical: require("../assets/historical.png"),
+                    government: require("../assets/government.png"),
+                    park: require("../assets/park.png"),
+                    food: require("../assets/food.png"),
+                    school: require("../assets/school.png"),
+                    event: require("../assets/events.png"),
                 }}
             />
+
             <ShapeSource id="landmarks" shape={featureCollection(points)} onPress={onPointPress}>
                 <SymbolLayer
                     id="landmark-icons"

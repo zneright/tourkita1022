@@ -1,3 +1,4 @@
+import LottieView from "lottie-react-native";
 import React, { useEffect, useState } from "react";
 import {
     View,
@@ -60,10 +61,11 @@ const WeatherProvider = () => {
                     weatherInfoWidth.value = withTiming(isShowing ? 330 : 0, { duration: 500 });
                     weatherInfoHeight.value = withTiming(isShowing ? 450 : 0, { duration: 500 });
                 }}>
-                <Image
-                    source={require('../assets/sunny.png')}
-                    style={styles.weatherIcon}
-
+                <LottieView
+                    source={require("../assets/day.json")}
+                    autoPlay
+                    loop
+                    style={{ width: 90, height: 80 }}
                 />
             </TouchableOpacity>
             <Animated.View style={[styles.weatherInfo, animatedWeatherStyle]}>
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
         top: 20,
         right: 20,
         borderRadius: 35,
-        padding: 10,
+
     },
     weatherIcon: {
         width: 50,
@@ -159,4 +161,3 @@ const styles = StyleSheet.create({
     },
 })
 export default WeatherProvider
-

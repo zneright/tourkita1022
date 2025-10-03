@@ -18,7 +18,7 @@ import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
 import { Linking } from "react-native";
-
+import NavigationToggleButton from "../components/NavigationButton";
 import SkeletonBox from "../components/Skeleton";
 import ModeSelector from "./ModeSelector";
 export default function SelectedLandmarkSheet() {
@@ -33,12 +33,12 @@ export default function SelectedLandmarkSheet() {
     const [weeklyEvents, setWeeklyEvents] = useState<{ day: string; title: string; start: string; end: string; openToPublic: boolean }[]>([]);
 
     const [loadingSheet, setLoadingSheet] = useState(true);
-    const [resolvedAddress, setResolvedAddress] = useState<string>("");
+
 
 
     const handleModeChange = (newMode: string) => {
         setMode(newMode);
-        loadDirection(undefined, newMode); 
+        loadDirection(undefined, newMode);
     };
     //  Pag pinindot ang markers
     useEffect(() => {
@@ -268,7 +268,7 @@ export default function SelectedLandmarkSheet() {
                                     {loadingDirection ? (
                                         <ActivityIndicator size="small" />
                                     ) : (
-                                        <Text>{( distance / 1000).toFixed(2)} km</Text>
+                                        <Text>{(distance / 1000).toFixed(2)} km</Text>
                                     )}
                                 </View>
                                 <View style={styles.iconTextRow}>
@@ -317,8 +317,8 @@ export default function SelectedLandmarkSheet() {
                                             : "Free"}
                                     </Text>
                                 </View>
-                                   
-                                <ModeSelector/>
+
+                                <ModeSelector />
                             </View>
                         </View>
                         <View style={styles.section}>
@@ -451,22 +451,6 @@ export default function SelectedLandmarkSheet() {
                                 </Text>
                             </View>
                         )}
-
-                        {/* Button */}
-                        <TouchableOpacity
-                            onPress={handleGetDirection}
-                            disabled={loadingDirection}
-                            style={styles.button}
-                        >
-                            {loadingDirection ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <>
-                                    <Entypo name="direction" size={22} color="white" />
-                                    <Text style={styles.buttonText}>Get Direction</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
 
                         {/* Modal */}
                         <Modal visible={isImageModalVisible} transparent>
