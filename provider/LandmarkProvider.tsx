@@ -2,6 +2,10 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from "react";
 import * as Location from "expo-location";
 import { getDirections } from "../services/directions";
+import haversine from "haversine-distance";
+import LottieView from "lottie-react-native";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+
 const LandmarkContext = createContext({});
 
 export default function LandmarkProvider({ children }: PropsWithChildren) {
@@ -10,6 +14,7 @@ export default function LandmarkProvider({ children }: PropsWithChildren) {
     const [showDirection, setShowDirection] = useState(false);
     const [loadingDirection, setLoadingDirection] = useState(false);
     const [mode, setMode] = useState<"walking" | "cycling" | "driving" | "driving-traffic">("walking");
+    const [arrived, setArrived] = useState(false);
 
     const loadDirection = async (
         target?: { latitude: number; longitude: number },
@@ -35,26 +40,134 @@ export default function LandmarkProvider({ children }: PropsWithChildren) {
         }
     };
 
+    useEffect(() => {
+        let interval: any;
+        if (selectedLandmark) {
+            interval = setInterval(async () => {
+                try {
+                    const location = await Location.getCurrentPositionAsync({});
+                    const userCoords = {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    };
+                    const destCoords = {
+                        latitude: selectedLandmark.latitude,
+                        longitude: selectedLandmark.longitude,
+                    };
+                    const distanceMeters = haversine(userCoords, destCoords);
+                    if (distanceMeters <= 30) {
+                        setArrived(true);
+                        clearInterval(interval);
+                    }
+                } catch (err) {
+                    console.error("Error checking arrival:", err);
+                }
+            }, 5000);
+        }
+        return () => clearInterval(interval);
+    }, [selectedLandmark]);
+
+    useEffect(() => {
+        let refreshInterval: any;
+
+        if (selectedLandmark && !arrived) {
+            refreshInterval = setInterval(() => {
+                loadDirection();
+            }, 180000); 
+        }
+
+        return () => clearInterval(refreshInterval);
+    }, [selectedLandmark, mode, arrived]);
+
     return (
-        <LandmarkContext.Provider
-            value={{
-                selectedLandmark,
-                setSelectedLandmark,
-                direction,
-                directionCoordinates: direction?.routes?.[0]?.geometry.coordinates,
-                duration: direction?.routes?.[0]?.duration,
-                distance: direction?.routes?.[0]?.distance,
-                showDirection,
-                setShowDirection,
-                loadingDirection,
-                loadDirection,
-                mode,
-                setMode
-            }}
-        >
-            {children}
-        </LandmarkContext.Provider>
+        <View style={{ flex: 1 }}>
+            <LandmarkContext.Provider
+                value={{
+                    selectedLandmark,
+                    setSelectedLandmark,
+                    direction,
+                    directionCoordinates: direction?.routes?.[0]?.geometry.coordinates,
+                    duration: direction?.routes?.[0]?.duration,
+                    distance: direction?.routes?.[0]?.distance,
+                    showDirection,
+                    setShowDirection,
+                    loadingDirection,
+                    loadDirection,
+                    mode,
+                    setMode,
+                }}
+            >
+                {children}
+            </LandmarkContext.Provider>
+
+            {arrived && (
+                <View style={styles.overlay}>
+                    <View style={styles.messageBox}>
+                        <TouchableOpacity style={styles.closeButton} onPress={() => setArrived(false)}>
+                            <Text style={styles.closeText}>✕</Text>
+                        </TouchableOpacity>
+                        <LottieView
+                            source={require("../assets/animations/success.json")}
+                            autoPlay
+                            loop
+                            style={styles.animation}
+                        />
+                        <Text style={styles.title}>You’ve arrived!</Text>
+                        <Text style={styles.subtitle}>
+                            {selectedLandmark?.name || "Your destination"}
+                        </Text>
+                    </View>
+                </View>
+            )}
+        </View>
     );
 }
 
 export const useLandmark = () => useContext(LandmarkContext);
+
+const styles = StyleSheet.create({
+    overlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.3)", // lighter opacity
+        padding: 20,
+    },
+    messageBox: {
+        backgroundColor: "white",
+        borderRadius: 20,
+        paddingVertical: 25,
+        paddingHorizontal: 20,
+        alignItems: "center",
+        width: "85%",
+    },
+    closeButton: {
+        position: "absolute",
+        top: 10,
+        right: 10,
+        padding: 5,
+    },
+    closeText: {
+        fontSize: 20,
+        color: "#444",
+    },
+    animation: {
+        width: 150,
+        height: 150,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: "bold",
+        color: "#333",
+        marginTop: 10,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: "#666",
+        marginTop: 4,
+    },
+});
