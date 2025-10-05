@@ -24,6 +24,7 @@ import SplashScreen from "../screens/SplashScreen";
 import DeleteAccountScreen from '../screens/DeleteAccountScreen';
 import CalendarViewScreen from '../screens/CalendarViewScreen';
 import FAQScreen from '../screens/FAQScreen';
+import View3D from '../screens/View3D';
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,6 +53,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
                     <Stack.Screen name="CalendarView" component={CalendarViewScreen} />
                     <Stack.Screen name="FAQScreen" component={FAQScreen} />
+                    <Stack.Screen name = "View3D" component ={View3D}/>
                 </Stack.Navigator>n
                 <SelectedLandmarkSheet />
             </LandmarkProvider>

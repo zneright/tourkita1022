@@ -62,7 +62,7 @@ const WeatherProvider = () => {
                     weatherInfoHeight.value = withTiming(isShowing ? 450 : 0, { duration: 500 });
                 }}>
                 <LottieView
-                    source={require("../assets/day.json")}
+                    source={require("../assets/animations/day.json")}
                     autoPlay
                     loop
                     style={{ width: 90, height: 80 }}

@@ -18,9 +18,13 @@ import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
 import { Linking } from "react-native";
-import NavigationToggleButton from "../components/NavigationButton";
+
 import SkeletonBox from "../components/Skeleton";
 import ModeSelector from "./ModeSelector";
+import LottieView from "lottie-react-native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../Navigation/types";
+import { useNavigation } from "@react-navigation/native";
 export default function SelectedLandmarkSheet() {
     const [isImageModalVisible, setImageModalVisible] = useState(false);
     const [averageRating, setAverageRating] = useState<number | null>(null);
@@ -33,13 +37,14 @@ export default function SelectedLandmarkSheet() {
     const [weeklyEvents, setWeeklyEvents] = useState<{ day: string; title: string; start: string; end: string; openToPublic: boolean }[]>([]);
 
     const [loadingSheet, setLoadingSheet] = useState(true);
-
+    const navigation = useNavigation<NavigationProp>();
 
 
     const handleModeChange = (newMode: string) => {
         setMode(newMode);
         loadDirection(undefined, newMode);
     };
+    type NavigationProp = NativeStackNavigationProp<RootStackParamList, "View3D">;
     //  Pag pinindot ang markers
     useEffect(() => {
         if (selectedLandmark) {
@@ -458,7 +463,32 @@ export default function SelectedLandmarkSheet() {
                                 <Image source={{ uri: selectedLandmark.image }} style={styles.modalImage} />
                             </TouchableOpacity>
                         </Modal>
+                        <View style={{alignItems:'center', flexDirection:'row', justifyContent:"center", gap:20}}>
+                            <View style={{flexDirection:'column',alignItems:"center"}}>
+                                <LottieView 
+                                source={require('../assets/animations/viewIn3D.json')}
+                                style={{width:150, height:150, alignSelf:'center'}}
+                                loop
+                                autoPlay
+                                />
+                                <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("View3D") } } >       
+                                <Text style={{color:"white"}}>View in 3D</Text>
+                            </TouchableOpacity>
+                            </View>
+                                <View style={{ flexDirection: 'column', alignItems: "center" }}>
+                                    <LottieView
+                                        source={require('../assets/animations/viewInRW.json')}
+                                        style={{ width: 150, height: 150, alignSelf: 'center' }}
+                                        loop
+                                        autoPlay
+                                    />
+                                    <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("ArCam") } }>
+                                        <Text style={{ color: "white" }}>View in Real World</Text>
+                                    </TouchableOpacity>
+                                </View>
+                        </View>
                     </>
+                   
                 )}
             </BottomSheetScrollView>
         </BottomSheet>
@@ -594,15 +624,13 @@ export default function SelectedLandmarkSheet() {
     },
 
     button: {
-        marginTop: 20,
         backgroundColor: "#6D4C41",
         borderRadius: 28,
-        height: 52,
+        height: 50,
         paddingHorizontal: 28,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        gap: 10,
         alignSelf: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },

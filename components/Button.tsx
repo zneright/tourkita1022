@@ -6,7 +6,7 @@ const Button = () => {
     const navigation = useNavigation();
     return (
         <TouchableOpacity style={styles.container} onPress={() => navigation.goBack()}>
-            <AntDesign name="arrowleft" size={24} color="white" />
+            <AntDesign name="arrowleft" size={24} color="black" />
         </TouchableOpacity>
     )
 }
@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 10,
         left: 20,
-        backgroundColor: 'gray',
+    
         padding: 10,
         borderRadius: 20,
         alignItems: 'center',

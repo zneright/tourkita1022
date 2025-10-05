@@ -35,4 +35,5 @@ export type RootStackParamList = {
     IntramurosStreetView: undefined;
     CalendarView: undefined;
     FAQScreen: undefined;
+    View3D: undefined;
 };

@@ -35,6 +35,7 @@ import CategoryFilter from "../components/CategoryFilter";
 import { set } from "date-fns";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import LottieView from "lottie-react-native";
+
 const screenWidth = Dimensions.get("window").width;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
@@ -194,7 +195,7 @@ export default function MapsScreen() {
 
                         >
                             <LottieView
-                                source={require("../assets/earth.json")}
+                                source={require("../assets/animations/earth.json")}
                                 autoPlay
                                 loop
                                 style={{ width: 30, height: 30 }}
@@ -208,7 +209,7 @@ export default function MapsScreen() {
                             }}
                         >
                             <LottieView
-                                source={require("../assets/city.json")}
+                                source={require("../assets/animations/city.json")}
                                 autoPlay
                                 loop
                                 style={{ width: 30, height: 30 }}
@@ -236,6 +237,7 @@ export default function MapsScreen() {
                             </Text>
                         </TouchableOpacity>
                     )}
+                    {showBottomNav && (
                     <View
                         style={{
                             position: "absolute",
@@ -250,7 +252,7 @@ export default function MapsScreen() {
                         }}
                     >
 
-                        {showBottomNav && (
+                      
                             <View style={{ alignItems: "center" }}>
 
                                 <Text style={{ marginRight: 8, fontWeight: "600", }}>
@@ -270,9 +272,10 @@ export default function MapsScreen() {
                                     thumbColor={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "#16a34a" : "#f4f3f4"}
                                 />
                             </View>
-                        )}
+                            
 
                     </View>
+                    )}
                     {showBottomNav && (
                         <TouchableOpacity
                             onPress={toggleNavigation}
@@ -469,7 +472,7 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         position: "absolute",
-        bottom: 75,
+        top: "35%",
         left: 20,
         flexDirection: "column",
         gap: 10,
