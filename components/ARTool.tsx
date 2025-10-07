@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import {
   ViroARScene,
   ViroARSceneNavigator,
@@ -11,13 +11,14 @@ import {
   ViroARImageMarker,
 } from '@reactvision/react-viro'
 import Button from './Button'
-import LottieView from 'lottie-react-native'
 
-function ARScene({ setGlobalLoading }) {
+function ARScene() {
   const [vidScale, setVidScale] = useState([2, 1, 1])
   const [scale, setScale] = useState([1, 1, 1])
   const [modPosition, setPosition] = useState([0, 0, 0])
   const [vidPosition, setVidPosition] = useState([0, 0, 0])
+  const [guardPosition, setGuardPosition] = useState([0, 0, -1])
+  const [guardScale, setGuardScale] = useState([1, 1, 1])
 
   ViroARTrackingTargets.createTargets({
     targetOne: {
@@ -28,72 +29,82 @@ function ARScene({ setGlobalLoading }) {
       physicalWidth: 0.157,
       type: 'Image',
     },
+    targetTwo: {
+      source: {
+        uri: 'https://i0.wp.com/www.theurbanroamer.com/wp-content/uploads/2017/11/26586264099_9fae38c747_b1.jpg',
+      },
+      orientation: 'Up',
+      physicalWidth: 0.157,
+      type: 'Image',
+    },
   })
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setScale([0.5, 0.5, 0.5])
+      setScale([1, 1, 1])
       setVidScale([1, 0.5, 0.5])
-      setPosition([0, -0.5, 0])
-      setVidPosition([0, 1, 0])
+      setPosition([0, -1, -1])
+      setVidPosition([0, 1, -1])
+     
     }, 5000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [scale])
 
   return (
     <ViroARScene>
       <ViroAmbientLight color="#FFFFFF" />
 
       <ViroARImageMarker target="targetOne">
+        <ViroNode scale={scale}>
+          <Viro3DObject
+            source={{ uri: 'https://tkp323s.web.app/UST_ARC.glb' }}
+            type="GLB"
+            position={modPosition}
+          />
+        </ViroNode>
 
-      <ViroNode scale={scale}>
-        <Viro3DObject
-          source={{ uri: 'https://tkp323s.web.app/gwardya_sibil.glb' }}
-          type="GLB"
-          onLoadStart={() => setGlobalLoading(true)}
-          onLoadEnd={() => setGlobalLoading(false)}
-          position={modPosition}
-        />
-      </ViroNode>
 
-      <ViroNode scale={vidScale}>
-        <ViroVideo
-          source={{ uri: 'https://tkp323s.web.app/archOfTheCenturies.mp4' }}
-          loop={true}
-          onLoadStart={() => setGlobalLoading(true)}
-          onLoadEnd={() => setGlobalLoading(false)}
-          position={vidPosition}
-        />
-      </ViroNode>
+
+
+        <ViroNode scale={vidScale}>
+          <ViroVideo
+            source={{ uri: 'https://tkp323s.web.app/archOfTheCenturies.mp4' }}
+            loop={true}
+            position={vidPosition}
+          />
+        </ViroNode>
+      </ViroARImageMarker>
+
+   
+      <ViroARImageMarker target="targetTwo">
+        <ViroNode scale={scale}>
+          <Viro3DObject
+            source={{ uri: 'https://tkp323s.web.app/Puerta_del_Parian.glb' }}
+            type="GLB"
+            position={modPosition}
+          />
+        </ViroNode>
+
+        <ViroNode scale={vidScale}>
+          <ViroVideo
+            source={{ uri: 'https://tkp323s.web.app/archOfTheCenturies.mp4' }}
+            loop={true}
+            position={vidPosition}
+          />
+        </ViroNode>
       </ViroARImageMarker>
     </ViroARScene>
   )
 }
 
 export function CameraPan() {
-  const [loading, setLoading] = useState(false)
-
   return (
     <View style={styles.container}>
       <ViroARSceneNavigator
         autofocus
-        initialScene={{ scene: () => <ARScene setGlobalLoading={setLoading} /> }}
+        initialScene={{ scene: () => <ARScene /> }}
         worldAlignment="Gravity"
       />
-
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <LottieView
-            source={require('../assets/animations/loadSpinner.json')}
-            style={{ width: 300, height: 300 }}
-            autoPlay
-            loop
-            
-          />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      )}
-
       <Button />
     </View>
   )
@@ -102,18 +113,5 @@ export function CameraPan() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection:"column",
-    zIndex: 10,
-  }, 
-  loadingText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'black',
-    top: -70
   },
 })
