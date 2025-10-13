@@ -463,32 +463,32 @@ export default function SelectedLandmarkSheet() {
                                 <Image source={{ uri: selectedLandmark.image }} style={styles.modalImage} />
                             </TouchableOpacity>
                         </Modal>
-                        <View style={{alignItems:'center', flexDirection:'row', justifyContent:"center", gap:20}}>
-                            <View style={{flexDirection:'column',alignItems:"center"}}>
-                                <LottieView 
-                                source={require('../assets/animations/viewIn3D.json')}
-                                style={{width:150, height:150, alignSelf:'center'}}
-                                loop
-                                autoPlay
+                        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: "center", gap: 20 }}>
+                            <View style={{ flexDirection: 'column', alignItems: "center" }}>
+                                <LottieView
+                                    source={require('../assets/animations/viewIn3D.json')}
+                                    style={{ width: 150, height: 150, alignSelf: 'center' }}
+                                    loop
+                                    autoPlay
                                 />
-                                <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("View3D") } } >       
-                                <Text style={{color:"white"}}>View in 3D</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("View3D") }} >
+                                    <Text style={{ color: "white" }}>View in 3D</Text>
+                                </TouchableOpacity>
                             </View>
-                                <View style={{ flexDirection: 'column', alignItems: "center" }}>
-                                    <LottieView
-                                        source={require('../assets/animations/viewInRW.json')}
-                                        style={{ width: 150, height: 150, alignSelf: 'center' }}
-                                        loop
-                                        autoPlay
-                                    />
-                                    <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("ArCam") } }>
-                                        <Text style={{ color: "white" }}>View in Real World</Text>
-                                    </TouchableOpacity>
-                                </View>
+                            <View style={{ flexDirection: 'column', alignItems: "center" }}>
+                                <LottieView
+                                    source={require('../assets/animations/viewInRW.json')}
+                                    style={{ width: 150, height: 150, alignSelf: 'center' }}
+                                    loop
+                                    autoPlay
+                                />
+                                <TouchableOpacity style={styles.button} onPress={() => { bottomSheetRef.current?.close(); navigation.navigate("ArCam") }}>
+                                    <Text style={{ color: "white" }}>View in Real World</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </>
-                   
+
                 )}
             </BottomSheetScrollView>
         </BottomSheet>

@@ -44,6 +44,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
 Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_KEY || "");
 
 export default function MapsScreen() {
+   
     const navigation = useNavigation<NavigationProp>();
     const scale = useSharedValue(1);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -175,7 +176,7 @@ export default function MapsScreen() {
                             androidRenderMode="gps"
                         />
 
-                        <LineBoundary visible={visible} />
+                        <LineBoundary />
                         <LandmarkMarkers
                             selectedCategory={selectedCategory}
                             onLoadingChange={setIsLoading}
@@ -238,21 +239,21 @@ export default function MapsScreen() {
                         </TouchableOpacity>
                     )}
                     {showBottomNav && (
-                    <View
-                        style={{
-                            position: "absolute",
-                            bottom: 70,
-                            right: 20,
-                            backgroundColor: "white",
-                            padding: 10,
-                            borderRadius: 8,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            elevation: 4,
-                        }}
-                    >
+                        <View
+                            style={{
+                                position: "absolute",
+                                bottom: 70,
+                                right: 20,
+                                backgroundColor: "white",
+                                padding: 10,
+                                borderRadius: 8,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                elevation: 4,
+                            }}
+                        >
 
-                      
+
                             <View style={{ alignItems: "center" }}>
 
                                 <Text style={{ marginRight: 8, fontWeight: "600", }}>
@@ -272,9 +273,9 @@ export default function MapsScreen() {
                                     thumbColor={currentMap === "mapbox://styles/ryanchico/cm93s4vxv003u01r9g2w28ek7" ? "#16a34a" : "#f4f3f4"}
                                 />
                             </View>
-                            
 
-                    </View>
+
+                        </View>
                     )}
                     {showBottomNav && (
                         <TouchableOpacity

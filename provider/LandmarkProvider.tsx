@@ -73,7 +73,7 @@ export default function LandmarkProvider({ children }: PropsWithChildren) {
         if (selectedLandmark && !arrived) {
             refreshInterval = setInterval(() => {
                 loadDirection();
-            }, 180000); 
+            }, 15000);
         }
 
         return () => clearInterval(refreshInterval);

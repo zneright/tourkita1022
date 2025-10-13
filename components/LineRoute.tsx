@@ -7,32 +7,32 @@ export default function LineRoute({ coordinates }: { coordinates: Position[] }) 
 
     return (
         <>
-           
-           
-                <VectorSource id="trafficSource" url="mapbox://mapbox.mapbox-traffic-v1">
-                    <LineLayer
-                        id="traffic"
-                        sourceLayerID="traffic"
-                        style={{
-                            lineColor: [
-                                "match",
-                                ["get", "congestion"],
-                                "low", "#2ECC71",       
-                                "moderate", "#F1C40F",  
-                                "heavy", "#E67E22",     
-                                "severe", "#E74C3C",   
-                                "#BDC3C7"               
-                            ],
-                            lineWidth: 3,
-                            lineCap: "round",
-                            lineJoin: "round",
-                        }}
-                        belowLayerID="landmark-icons"
-                    />
-                </VectorSource>
-        
 
-           
+
+            <VectorSource id="trafficSource" url="mapbox://mapbox.mapbox-traffic-v1">
+                <LineLayer
+                    id="traffic"
+                    sourceLayerID="traffic"
+                    style={{
+                        lineColor: [
+                            "match",
+                            ["get", "congestion"],
+                            "low", "#2ECC71",
+                            "moderate", "#F1C40F",
+                            "heavy", "#E67E22",
+                            "severe", "#E74C3C",
+                            "#BDC3C7"
+                        ],
+                        lineWidth: 3,
+                        lineCap: "round",
+                        lineJoin: "round",
+                    }}
+                    belowLayerID="landmark-icons"
+                />
+            </VectorSource>
+
+
+
             {coordinates?.length > 0 && (
                 <ShapeSource
                     id="route"
@@ -46,14 +46,14 @@ export default function LineRoute({ coordinates }: { coordinates: Position[] }) 
                     }}
                 >
                     <LineLayer
-                        id="lineLayer"
+                        id="routeLineLayer"
                         style={{
-                            lineColor: '#6366F1',
+                            lineColor: '#8c00ff',
                             lineCap: 'round',
                             lineJoin: 'round',
                             lineWidth: 4,
                         }}
-                        belowLayerID="landmark-icons" 
+                        belowLayerID="landmark-icons"
                     />
                 </ShapeSource>
             )}
