@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
@@ -147,11 +147,31 @@ const ProfileScreen = () => {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Sign Up to Unlock Features</Text>
                             <Text style={styles.modalText}>
-                                Create an account to view your profile, change your password, and more!
+                                Create an account to access our advanced feauture!
                             </Text>
                             <TouchableOpacity
                                 style={styles.signUpButton}
-                                onPress={() => navigation.navigate('SignUp')}
+                                onPress={async () => {
+                                    try {
+                                        const uid = auth.currentUser?.uid;
+
+                                        if (uid) {
+                                            // Update activeStatus to false
+                                            await setDoc(
+                                                doc(db, 'guests', uid),
+                                                { activeStatus: false },
+                                                { merge: true }
+                                            );
+                                            console.log('activeStatus set to false');
+                                        } else {
+                                            console.warn('No current user UID found. Cannot update guest.');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error updating guest status:', error);
+                                    } finally {
+                                        navigation.navigate('SignUp');
+                                    }
+                                }}
                             >
                                 <Text style={styles.signUpText}>Sign Up</Text>
                             </TouchableOpacity>

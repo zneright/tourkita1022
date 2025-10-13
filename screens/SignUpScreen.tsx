@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, act } from "react";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { RootStackParamList } from '../Navigation/types';
 import { BackHandler } from "react-native";
@@ -19,12 +19,12 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from '@expo/vector-icons';
+import { doc, setDoc } from "firebase/firestore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const SignUpScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    // Fields state
     const [lastName, setLastName] = useState("");
     const [middleInitial, setMiddleInitial] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -37,7 +37,7 @@ const SignUpScreen = () => {
     const [email, setEmail] = useState("");
     const [isChecked, setIsChecked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
+    const [activeStatus, setActiveStatus] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -90,11 +90,6 @@ const SignUpScreen = () => {
         });
     };
 
-    const generateCustomUid = (): string => {
-        const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
-        return `U${randomDigits}`;
-    };
-
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             navigation.goBack();
@@ -109,7 +104,6 @@ const SignUpScreen = () => {
 
         if (!lastName.trim()) newErrors.lastName = true;
         if (!firstName.trim()) newErrors.firstName = true;
-
         if (!age || isNaN(Number(age)) || Number(age) <= 0) newErrors.age = true;
 
         const contactRegex = /^09\d{9}$/;
@@ -130,8 +124,6 @@ const SignUpScreen = () => {
             return;
         }
 
-
-
         setIsSubmitting(true);
 
         try {
@@ -140,30 +132,35 @@ const SignUpScreen = () => {
 
             await sendEmailVerification(user);
 
-            Alert.alert("Check your email for the verification link.");
-            const customUid = generateCustomUid();
-            navigation.navigate("EmailVerification", {
-                userData: {
-                    uid: customUid,
-                    firstName,
-                    middleInitial,
-                    lastName,
-                    gender,
-                    userType,
-                    age: parseInt(age),
-                    contactNumber,
-                    email,
-                    profileImage: "https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg",
-                },
-            });
+            // ✅ Add user data to Firestore
+            const userData = {
+                uid: user.uid,
+                firstName,
+                middleInitial,
+                lastName,
+                gender,
+                userType,
+                age: parseInt(age),
+                contactNumber,
+                email,
+                status: "Registered",
+                profileImage: "https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg",
+                activeStatus: false,
+            };
+
+            await setDoc(doc(db, "users", user.uid), userData, {merge: true});
+
+            Alert.alert("Success!", "Check your email for the verification link.");
+
+            navigation.navigate("EmailVerification", { userData });
+
         } catch (error: any) {
-            Alert.alert("Error", error.message);
+            Alert.alert("Error", error.message || "Something went wrong during signup.");
         } finally {
             setIsSubmitting(false);
         }
     };
-
-
+ 
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -208,6 +205,7 @@ const SignUpScreen = () => {
                         onChangeText={(val) => onChangeField("firstName", val)}
                     />
                     {errors.firstName && <Text style={styles.errorText}>First Name is required.</Text>}
+
                     <View style={styles.row}>
                         <View style={styles.column}>
                             <Text style={styles.label}>Gender</Text>
@@ -265,12 +263,12 @@ const SignUpScreen = () => {
                             value={password}
                             onChangeText={(val) => onChangeField("password", val)}
                         />
-
                         <TouchableOpacity onPress={() => setShowPassword(prev => !prev)} style={styles.eyeIcon}>
                             <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#603F26" />
                         </TouchableOpacity>
                     </View>
                     {errors.password && <Text style={styles.errorText}>Password must be at least 7 characters and include letters & numbers.</Text>}
+
                     <Text style={styles.label}>Confirm Password</Text>
                     <View style={styles.passwordContainer}>
                         <TextInput
@@ -279,12 +277,12 @@ const SignUpScreen = () => {
                             value={confirmPassword}
                             onChangeText={(val) => onChangeField("confirmPassword", val)}
                         />
-
                         <TouchableOpacity onPress={() => setShowConfirmPassword(prev => !prev)} style={styles.eyeIcon}>
                             <Ionicons name={showConfirmPassword ? "eye" : "eye-off"} size={24} color="#603F26" />
                         </TouchableOpacity>
                     </View>
                     {errors.confirmPassword && <Text style={styles.errorText}>Passwords do not match.</Text>}
+
                     <Text style={styles.label}>Email</Text>
                     <TextInput
                         style={[styles.input, errors.email && styles.errorInput]}
@@ -294,6 +292,7 @@ const SignUpScreen = () => {
                         autoCapitalize="none"
                     />
                     {errors.email && <Text style={styles.errorText}>Email format is invalid.</Text>}
+
                     <View style={styles.checkboxContainer}>
                         <Checkbox
                             value={isChecked}
@@ -306,6 +305,7 @@ const SignUpScreen = () => {
                         </TouchableOpacity>
                     </View>
                     {errors.terms && <Text style={styles.errorText}>You must accept the terms and conditions.</Text>}
+
                     <TouchableOpacity
                         style={[styles.button, isSubmitting && { backgroundColor: "#A5A5A5" }]}
                         onPress={handleNext}
@@ -412,22 +412,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 10,
     },
-    passwordInputWrapper: {
-        position: "relative",
-        marginBottom: 10,
-        justifyContent: "center",
-    },
-
-    passwordInput: {
-        backgroundColor: "#F5F5F5",
-        height: 40,
-        borderRadius: 5,
-        paddingLeft: 10,
-        paddingRight: 40,
-        borderWidth: 1,
-        borderColor: "#F5F5F5",
-    },
-
     eyeIcon: {
         position: "absolute",
         right: 10,
@@ -443,7 +427,6 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         marginLeft: 6,
     },
-
 });
 
 export default SignUpScreen;

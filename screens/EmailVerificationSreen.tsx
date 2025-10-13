@@ -11,9 +11,10 @@ import {
 } from "react-native";
 import { useNavigation, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { saveUserData } from "../utils/saveUserData";
 import { RootStackParamList } from "../Navigation/types";
+import { doc, setDoc } from "firebase/firestore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 type EmailVerificationRouteProp = RouteProp<RootStackParamList, "EmailVerification">;
@@ -71,24 +72,31 @@ const EmailVerificationScreen = ({ route }: { route: EmailVerificationRouteProp 
     }, []);
 
     useEffect(() => {
-        const user = auth.currentUser;
-        if (isEmailVerified && user) {
+        if (!isEmailVerified) return;
+
+        const saveData = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
             const userDataWithCreatedAt = {
                 ...userData,
                 customUid: user.uid,
                 createdAt: new Date().toISOString(),
             };
 
-            saveUserData(userDataWithCreatedAt)
-                .then(() => {
-                    Alert.alert("Email Verified", "Redirecting to login screen...");
-                    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-                })
-                .catch((error) => {
-                    console.error("Error saving user data:", error);
-                });
-        }
+            try {
+                await setDoc(doc(db, "users", user.uid), userDataWithCreatedAt, { merge: true });
+                Alert.alert("Email Verified", "Redirecting to login screen...");
+                navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+            } catch (error) {
+                console.error("Error saving user data:", error);
+            }
+        };
+
+        saveData();
     }, [isEmailVerified]);
+
+
 
     useFocusEffect(() => {
         const onBackPress = () => {

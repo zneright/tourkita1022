@@ -15,14 +15,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
 import { useUser } from '../context/UserContext';
 import { BlurView } from 'expo-blur';
-
+import { setActiveStatus } from '../components/helper';
+import GuestLockOverlay from '../components/guestLockOverlay';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
 const ProfileScreen = () => {
@@ -38,23 +39,23 @@ const ProfileScreen = () => {
             try {
                 const currentUser = auth.currentUser;
                 if (!currentUser) return setLoading(false);
-
-                const q = query(collection(db, 'users'), where('email', '==', currentUser.email));
-                const snapshot = await getDocs(q);
-
-                if (!snapshot.empty) {
-                    const data = snapshot.docs[0].data();
-                    const middle = data.middleInitial ? `${data.middleInitial}.` : '';
-                    setName(`${data.firstName} ${middle} ${data.lastName}`.trim());
-                    setProfileImage(data.profileImage || '');
-                } else setName('No user data');
+                if (currentUser) {
+                    const docRef = doc(db, 'users', currentUser.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const middle = data.middleInitial ? `${data.middleInitial}.` : '';
+                        setName(`${data.firstName} ${middle} ${data.lastName}`.trim());
+                        setProfileImage(data.profileImage || '');
+                    }
+                }
             } catch (err) {
                 console.error(err);
                 setName('Error loading name');
             } finally {
                 setLoading(false);
             }
-        };
+        }   
 
         fetchUserData();
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
@@ -71,6 +72,9 @@ const ProfileScreen = () => {
                     text: 'Log Out',
                     style: 'destructive',
                     onPress: async () => {
+                        if (auth.currentUser) {
+                            await setActiveStatus(auth.currentUser.uid, false); // set offline
+                        }
                         await signOut(getAuth());
                         await AsyncStorage.removeItem('cachedUserName');
                         navigation.replace('Login');
@@ -111,6 +115,7 @@ const ProfileScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Profile" onSupportPress={() => navigation.navigate('Support')} />
+            {isGuest &&  <GuestLockOverlay/>}
             <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 80 }]}>
                 <View style={styles.profileContainer}>
                     {loading ? (
@@ -142,22 +147,7 @@ const ProfileScreen = () => {
                     {renderMenuItem('Log Out', handleLogOut, true)}
                 </View>
 
-                {isGuest && (
-                    <BlurView intensity={90} tint="light" style={styles.blurOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Sign Up to Unlock Features</Text>
-                            <Text style={styles.modalText}>
-                                Create an account to view your profile, change your password, and more!
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.signUpButton}
-                                onPress={() => navigation.navigate('SignUp')}
-                            >
-                                <Text style={styles.signUpText}>Sign Up</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </BlurView>
-                )}
+                
             </ScrollView>
             <BottomFooter active="Profile" />
         </SafeAreaView>
@@ -198,20 +188,5 @@ const styles = StyleSheet.create({
     menuText: { fontSize: 15, color: '#333' },
     dangerText: { color: '#FF4D4D', fontWeight: '600' },
     chevron: { fontSize: 16, color: '#C0C0C0' },
-    blurOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 10, justifyContent: 'center', alignItems: 'center' },
-    modalContainer: {
-        backgroundColor: '#fff',
-        padding: 22,
-        borderRadius: 14,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 6,
-        elevation: 5,
-    },
-    modalTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8, textAlign: 'center' },
-    modalText: { fontSize: 14, color: '#6B5E5E', marginBottom: 14, textAlign: 'center' },
-    signUpButton: { backgroundColor: '#8B5E3C', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
-    signUpText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    
 });

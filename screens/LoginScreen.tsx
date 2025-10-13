@@ -16,19 +16,18 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Feather';
 import { useUser } from '../context/UserContext';
 import { loginAsGuest } from '../utils/guestLogin';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { setUser, setIsGuest } = useUser();
+    const { user: currentUser, setUser, isGuest, setIsGuest } = useUser();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -37,6 +36,19 @@ const LoginScreen = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const isLoading = loadingLogin || loadingGuest;
+
+    const updateGuestStatus = async (guestId: string, status: boolean) => {
+        try {
+            await setDoc(
+                doc(db, "guests", guestId),
+                { activeStatus: status },
+                { merge: true }
+            );
+            console.log(`Guest activeStatus set to ${status}`);
+        } catch (error) {
+            console.error("Error updating guest activeStatus:", error);
+        }
+    };
 
     const handleLogin = async () => {
         if (isLoading) return;
@@ -54,22 +66,18 @@ const LoginScreen = () => {
         setLoadingLogin(true);
 
         try {
+            // Check archived users
             const archivedQuery = query(
                 collection(db, 'archived_users'),
                 where('email', '==', email.trim().toLowerCase())
             );
             const archivedSnap = await getDocs(archivedQuery);
-
             if (!archivedSnap.empty) {
                 const data = archivedSnap.docs[0]?.data() || {};
-                const reason = data.archiveReason ?? 'No reason provided';
-
-
                 Alert.alert(
                     'Access Denied',
-                    `Your account has been archived.\n\nReason: ${reason}`
+                    `Your account has been archived.\n\nReason: ${data.archiveReason ?? 'No reason provided'}`
                 );
-
                 setLoadingLogin(false);
                 return;
             }
@@ -88,9 +96,22 @@ const LoginScreen = () => {
                 return;
             }
 
+            // ✅ Set registered user activeStatus to true
+            await setDoc(
+                doc(db, 'users', user.uid),
+                { activeStatus: true },
+                { merge: true }
+            );
+
+            // ✅ If current user was a guest, mark guest inactive
+            if (isGuest && currentUser?.uid) {
+                await updateGuestStatus(currentUser.uid, false);
+            }
+
             setUser(user);
             setIsGuest(false);
             navigation.replace('Maps');
+
         } catch (error: any) {
             console.error('Login error:', error);
             const errorMessages: Record<string, string> = {
@@ -98,8 +119,7 @@ const LoginScreen = () => {
                 'auth/wrong-password': 'Incorrect password.',
                 'auth/invalid-email': 'Invalid email format.',
             };
-            const message = errorMessages[error.code] || 'Login failed. Please try again.';
-            Alert.alert('Login Error', message);
+            Alert.alert('Login Error', errorMessages[error.code] || 'Login failed. Please try again.');
         } finally {
             setLoadingLogin(false);
         }
@@ -112,6 +132,10 @@ const LoginScreen = () => {
             const user = await loginAsGuest();
             setUser(user);
             setIsGuest(true);
+
+            // ✅ Mark guest active
+            await updateGuestStatus(user.uid, true);
+
             navigation.replace('Maps');
         } catch (error) {
             console.error('Guest login error:', error);
@@ -128,7 +152,6 @@ const LoginScreen = () => {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                 style={styles.container}
             >
-
                 <Image
                     source={require('../assets/TourkitaLogo.jpg')}
                     resizeMode="contain"
@@ -148,7 +171,16 @@ const LoginScreen = () => {
                 <View style={styles.tabContainer}>
                     <Text style={styles.activeTab}>Login</Text>
                     <TouchableOpacity
-                        onPress={() => navigation.navigate('SignUp')}
+                        onPress={async () => {
+                            if (isLoading) return;
+
+                            // If guest, mark inactive before navigating to SignUp
+                            if (isGuest && currentUser?.uid) {
+                                await updateGuestStatus(currentUser.uid, false);
+                            }
+
+                            navigation.navigate('SignUp');
+                        }}
                         disabled={isLoading}
                     >
                         <Text style={styles.inactiveTab}>Sign Up</Text>
@@ -221,54 +253,19 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 20,
-        paddingBottom: 190,
-    },
+    container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, paddingBottom: 190 },
     logo: { width: 200, height: 200 },
-    agreementText: {
-        color: '#6B5E5E',
-        fontSize: 13,
-        textAlign: 'center',
-        width: width * 0.8,
-        marginBottom: 20
-    },
-    linkText: { fontWeight: 'bold', color: '#603F26', },
+    agreementText: { color: '#6B5E5E', fontSize: 13, textAlign: 'center', width: width * 0.8, marginBottom: 20 },
+    linkText: { fontWeight: 'bold', color: '#603F26' },
     tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
     activeTab: { color: '#603F26', fontSize: 20 },
     inactiveTab: { color: '#A5A5A5', fontSize: 20, marginLeft: 26 },
-    input: {
-        height: 45,
-        backgroundColor: '#FFFFFF',
-        borderColor: '#603F26',
-        borderRadius: 15,
-        borderWidth: 1,
-        paddingHorizontal: 15,
-        width: width * 0.8,
-        marginBottom: 10,
-        paddingRight: 40,
-    },
-    passwordContainer: {
-        flexDirection: 'row',
-        width: width * 0.8,
-        marginBottom: 10,
-        position: 'relative',
-    },
+    input: { height: 45, backgroundColor: '#FFFFFF', borderColor: '#603F26', borderRadius: 15, borderWidth: 1, paddingHorizontal: 15, width: width * 0.8, marginBottom: 10, paddingRight: 40 },
+    passwordContainer: { flexDirection: 'row', width: width * 0.8, marginBottom: 10, position: 'relative' },
     eyeIcon: { position: 'absolute', right: 10, top: 12 },
     forgotPasswordContainer: { alignSelf: 'flex-end', marginRight: 48 },
     forgotPassword: { color: '#603F26', fontSize: 10 },
-    loginButton: {
-        alignItems: 'center',
-        backgroundColor: '#603F26',
-        borderRadius: 5,
-        paddingVertical: 11,
-        width: width * 0.8,
-        marginVertical: 10,
-        elevation: 4,
-    },
+    loginButton: { alignItems: 'center', backgroundColor: '#603F26', borderRadius: 5, paddingVertical: 11, width: width * 0.8, marginVertical: 10, elevation: 4 },
     loginText: { color: '#FFFFFF', fontSize: 20 },
     guestText: { color: '#603F26', fontSize: 14, marginTop: 6, marginBottom: 10 },
 });

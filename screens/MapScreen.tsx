@@ -35,7 +35,7 @@ import CategoryFilter from "../components/CategoryFilter";
 import { set } from "date-fns";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import LottieView from "lottie-react-native";
-
+import { useUser } from "../context/UserContext";
 const screenWidth = Dimensions.get("window").width;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
@@ -58,7 +58,7 @@ export default function MapsScreen() {
     const [navigationMode, setNavigationMode] = useState(false);
     const cameraRef = useRef<Camera>(null);
     const expandMap = useRef<Camera>(null);
-
+    const {isGuest} = useUser();
     const PH_BOUNDS = {
         ne: [127.0, 21.0],
         sw: [116.0, 4.5],
@@ -317,20 +317,23 @@ export default function MapsScreen() {
                     )}
 
 
-                    <View style={styles.infoPanel2}>
-                        <View style={styles.infoItem}>
-                            <FontAwesome5 name="route" size={16} color="#333" />
-                            <Text style={styles.infoText2}>
-                                {distance != null ? (distance / 1000).toFixed(2) : "--"} km
-                            </Text>
+                    {!showBottomNav &&(
+                        <View style={styles.infoPanel2}>
+                            <View style={styles.infoItem}>
+                                <FontAwesome5 name="route" size={16} color="#333" />
+                                <Text style={styles.infoText2}>
+                                    {distance != null ? (distance / 1000).toFixed(2) : "--"} km
+                                </Text>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Entypo name="back-in-time" size={16} color="#333" />
+                                <Text style={styles.infoText2}>
+                                    {duration != null ? (duration / 60).toFixed(0) : "--"} min
+                                </Text>
+                            </View>
                         </View>
-                        <View style={styles.infoItem}>
-                            <Entypo name="back-in-time" size={16} color="#333" />
-                            <Text style={styles.infoText2}>
-                                {duration != null ? (duration / 60).toFixed(0) : "--"} min
-                            </Text>
-                        </View>
-                    </View>
+
+                    )}
 
                     {isLoading && (
                         <View style={styles.loadingOverlay}>
@@ -344,11 +347,13 @@ export default function MapsScreen() {
                 )}
 
             </View>
-            {showBottomNav && (
+            {showBottomNav &&(
                 <View style={styles.footerWrapper}>
                     <BottomFooter active="Maps" />
                 </View>
             )}
+
+          
 
         </SafeAreaView>
 

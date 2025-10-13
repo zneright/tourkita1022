@@ -22,6 +22,8 @@ import { useLandmark } from "../provider/LandmarkProvider";
 import EventCalendar from "../components/EventCalendar";
 import SkeletonBox from "../components/Skeleton";
 import { add } from "date-fns";
+import { useUser } from "../context/UserContext";
+import GuestLockOverlay from "../components/guestLockOverlay";
 type Marker = {
     id: string;
     name: string;
@@ -66,7 +68,7 @@ const SearchScreen = () => {
     const [events, setEvents] = useState<Event[]>([]);
 
     const { setSelectedLandmark, loadDirection } = useLandmark();
-
+    const {isGuest} = useUser();
     const formatTime12Hour = (time?: string) => {
         if (!time) return "";
         const [hour, minute] = time.split(":").map(Number);
@@ -266,6 +268,11 @@ const SearchScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Search" onSupportPress={() => navigation.navigate("Support")} />
+            {!isGuest ? (
+                <BottomFooter active="Search" />
+            ) : (
+                <GuestLockOverlay />
+            )}
             <ScrollView
                 style={styles.scrollContainer}
                 showsVerticalScrollIndicator={false}
@@ -414,6 +421,7 @@ const SearchScreen = () => {
                         )}
                     </View>
                 </View>
+                
             </Modal>
 
             <BottomFooter active="Search" />

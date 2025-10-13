@@ -29,7 +29,8 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SkeletonBox from "../components/Skeleton";
 import NotificationModal from "../components/NotificationModal";
-
+import { useUser } from "../context/UserContext";
+import GuestLockOverlay from "../components/guestLockOverlay";
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Notification">;
 
 type NotificationSource = "notifications" | "adminMessages";
@@ -55,7 +56,7 @@ const NotificationScreen = () => {
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
-
+    const { isGuest } = useUser();
     const auth = getAuth();
     const user = auth.currentUser;
 
@@ -181,7 +182,8 @@ const NotificationScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <TopHeader title="Notifications" onSupportPress={() => navigation.navigate("Support")} />
-
+        
+            {isGuest && <GuestLockOverlay />}
             <View style={styles.contentWrapper}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
                     {loading ? (

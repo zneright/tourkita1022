@@ -14,8 +14,9 @@ export type RootStackParamList = {
             age: number;
             contactNumber: string;
             email: string;
-            profileImage: string
-            ,
+            profileImage: string;
+            status: string;
+            activeStatus: boolean;
         };
     };
     Support: undefined;
