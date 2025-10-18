@@ -24,6 +24,7 @@ import ModeSelector from "./ModeSelector";
 import LottieView from "lottie-react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation/types";
+import { doc, getDoc } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 export default function SelectedLandmarkSheet() {
     const [isImageModalVisible, setImageModalVisible] = useState(false);
@@ -183,7 +184,34 @@ export default function SelectedLandmarkSheet() {
             setReviewCount(0);
         }
     };
+    const handleView3D = async () => {
+        try {
+            if (!selectedLandmark) return;
 
+            // Firestore document ID must match the landmark name (or use id if you prefer)
+            const ref = doc(db, "arTargets", selectedLandmark.name);
+            const snap = await getDoc(ref);
+
+            if (!snap.exists()) {
+                console.warn(`No 3D model found for: ${selectedLandmark.name}`);
+                navigation.navigate("View3D", {
+                    modelUrl: null,
+                    title: selectedLandmark.name,
+                });
+                return;
+            }
+
+            const data = snap.data();
+            const modelUrl = data.modelUrl;
+
+            navigation.navigate("View3D", {
+                modelUrl,
+                title: selectedLandmark.name,
+            });
+        } catch (e) {
+            console.error("Error fetching model:", e);
+        }
+    };
     const handleGetDirection = () => loadDirection();
 
     if (!selectedLandmark) return null;
@@ -476,11 +504,13 @@ export default function SelectedLandmarkSheet() {
                                             style={styles.button}
                                             onPress={() => {
                                                 bottomSheetRef.current?.close();
-                                                navigation.navigate("View3D");
+                                                handleView3D();
                                             }}
                                         >
                                             <Text style={{ color: "white" }}>View in 3D</Text>
                                         </TouchableOpacity>
+
+
                                     </View>
 
                                     <View style={{ flexDirection: 'column', alignItems: "center" }}>
@@ -492,13 +522,38 @@ export default function SelectedLandmarkSheet() {
                                         />
                                         <TouchableOpacity
                                             style={styles.button}
-                                            onPress={() => {
-                                                bottomSheetRef.current?.close();
-                                                navigation.navigate("ArCam");
+                                            onPress={async () => {
+                                                try {
+                                                    bottomSheetRef.current?.close();
+                                                    const ref = doc(db, "arTargets", selectedLandmark.name);
+                                                    const snap = await getDoc(ref);
+
+                                                    if (!snap.exists()) {
+                                                        console.warn(`No AR target found for: ${selectedLandmark.name}`);
+                                                        navigation.navigate("ArCam", {
+                                                            modelUrl: null,
+                                                            imageUrl: null,
+                                                            title: selectedLandmark.name,
+                                                        });
+                                                        return;
+                                                    }
+
+                                                    const data = snap.data();
+                                                    navigation.navigate("ArCam", {
+                                                        modelUrl: data.modelUrl,
+                                                        imageUrl: data.imageUrl,
+                                                        videoUrl: data.videoUrl || null,
+                                                        title: selectedLandmark.name,
+                                                    });
+                                                } catch (e) {
+                                                    console.error("Error loading AR target:", e);
+                                                }
                                             }}
                                         >
                                             <Text style={{ color: "white" }}>View in Real World</Text>
                                         </TouchableOpacity>
+
+
                                     </View>
                                 </View>
                             )}

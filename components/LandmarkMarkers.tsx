@@ -7,16 +7,8 @@ import { db } from "../firebase";
 import { useLandmark } from "../provider/LandmarkProvider";
 import EventDetailModal from "./EventDetailModal";
 import EventListModal from "./EventListModal";
+import { useNavigation } from "@react-navigation/native";
 
-import pin from "../assets/pinB.png";
-import restroom from "../assets/restroom.png";
-import museum from "../assets/museum.png";
-import historical from "../assets/historical.png";
-import government from "../assets/government.png";
-import park from "../assets/park.png";
-import food from "../assets/food.png";
-import school from "../assets/school.png";
-import eventIcon from "../assets/events.png";
 
 import { format, isWithinInterval, parseISO } from "date-fns";
 export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: any) {
@@ -158,12 +150,16 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
     );
 
 
+    const navigation = useNavigation();
+
     const onPointPress = async (event: OnPressEvent) => {
         try {
             const landmarkStr = event.features[0].properties?.landmark;
             if (!landmarkStr) return;
-            const landmark = JSON.parse(landmarkStr);
+            console.log("Pressed feature:", event.features[0].properties);
+            console.log("landmarkStr type:", typeof landmarkStr);
 
+            const landmark = typeof landmarkStr === "string" ? JSON.parse(landmarkStr) : landmarkStr;
             // ✅ Use EventListModal only for Events
             if (selectedCategory === "Events" || landmark.category === "Event") {
                 const eventsHere = landmarks.filter(
@@ -173,18 +169,14 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                         parseFloat(l.longitude) === parseFloat(landmark.longitude)
                 );
 
-                // Multiple events at same location → show modal list
                 if (eventsHere.length > 1) {
                     setEventsAtLocation(eventsHere);
                     setShowEventListModal(true);
                     return;
                 }
 
-                // Single event → open details
                 if (eventsHere.length === 1) {
                     const evt = eventsHere[0];
-
-                    // fetch address if needed
                     if (!evt.customAddress && evt.locationId) {
                         try {
                             const markerDoc = await getDoc(doc(db, "markers", String(evt.locationId)));
@@ -208,7 +200,24 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                 return; // no matching events
             }
 
+            // 🟢 NEW: Check if this landmark has a corresponding 3D model in Firestore
+            const arTargetRef = doc(db, "arTargets", String(landmark.id || landmark.name));
+
+            const arTargetSnap = await getDoc(arTargetRef);
+
+            if (arTargetSnap.exists()) {
+                const arData = arTargetSnap.data();
+                navigation.navigate("View3D", {
+                    title: landmark.name,
+                    modelUrl: arData.modelUrl,
+                });
+                return;
+            }
+
+
+            // fallback to showing landmark info if no 3D model
             setSelectedLandmark(landmark);
+
         } catch (error) {
             console.error("Error parsing landmark data:", error);
         }
