@@ -4,8 +4,8 @@ import { Button, View } from 'react-native';
 import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import { app } from '../firebase';
 
-const LineBoundary = () => {
-    const [visible, setVisible] = useState(true);
+const LineBoundary = ({visible}) => {
+    
     const [features, setFeatures] = useState([]);
 
     useEffect(() => {
@@ -78,12 +78,7 @@ const LineBoundary = () => {
                 />
             </ShapeSource>
 
-            <View style={{ position: 'absolute', top: 50, right: 20 }}>
-                <Button
-                    title={visible ? 'Hide Landmarks' : 'Show Landmarks'}
-                    onPress={() => setVisible(!visible)}
-                />
-            </View>
+          
         </>
     );
 };

@@ -12,7 +12,7 @@ import {
 import { useNavigation, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { auth, db } from "../firebase";
-import { saveUserData } from "../utils/saveUserData";
+
 import { RootStackParamList } from "../Navigation/types";
 import { doc, setDoc } from "firebase/firestore";
 

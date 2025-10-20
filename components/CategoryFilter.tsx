@@ -17,15 +17,17 @@ export default function CategoryFilter({ selectedCategory, onSelectCategory }: P
     const categories = [
 
         { label: "All", uri: "https://img.icons8.com/ios-filled/100/9c8061/globe.png" },
-
-        { label: "Events", uri: "https://img.icons8.com/ios-filled/100/9c8061/calendar.png" },
+        { label: "Augmented Reality", uri: "https://firebasestorage.googleapis.com/v0/b/admin-login-244c5.firebasestorage.app/o/models%2Fmarkers%2Ficons8-hologram-100%20(1).png?alt=media&token=aacfbd20-2ec3-4963-bb11-09c08c416069" },
         { label: "Historical", uri: "https://img.icons8.com/ios-filled/100/9c8061/monument.png" },
+        { label: "Relics/Artifacts", uri: "https://firebasestorage.googleapis.com/v0/b/admin-login-244c5.firebasestorage.app/o/models%2Fmarkers%2Ficons8-museum-art-100.png?alt=media&token=58f9a65b-da8f-4ebe-a859-a6e926032fcf" },
         { label: "Food", uri: "https://img.icons8.com/ios-filled/100/9c8061/restaurant.png" },
         { label: "Museum", uri: "https://img.icons8.com/ios-filled/100/9c8061/museum.png" },
         { label: "Park", uri: "https://img.icons8.com/ios-filled/100/9c8061/deciduous-tree.png" },
         { label: "School", uri: "https://img.icons8.com/ios-filled/100/9c8061/school.png" },
         { label: "Restroom", uri: "https://img.icons8.com/ios-filled/100/9c8061/toilet.png" },
         { label: "Government", uri: "https://img.icons8.com/ios-filled/100/9c8061/city-hall.png" },
+        { label: "Events", uri: "https://img.icons8.com/ios-filled/100/9c8061/calendar.png" },
+       
 
     ];
 

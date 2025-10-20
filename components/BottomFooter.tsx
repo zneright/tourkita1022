@@ -18,7 +18,6 @@ export default function BottomFooter({ active }: BottomFooterProps) {
     const tabs = [
         { label: "Maps", icon: { uri: "https://img.icons8.com/ios-filled/50/5c3d2e/map.png" }, screen: "Maps" },
         { label: "Search", icon: { uri: "https://img.icons8.com/ios-filled/50/5c3d2e/search--v1.png" }, screen: "Search" },
-        { label: "AR Cam", icon: { uri: "https://img.icons8.com/ios-filled/50/5c3d2e/camera.png" }, screen: "ArCam" },
         { label: "Notifications", icon: { uri: "https://img.icons8.com/ios-filled/50/5c3d2e/appointment-reminders--v1.png" }, screen: "Notification" },
         { label: "Me", icon: { uri: "https://img.icons8.com/ios-filled/50/5c3d2e/user.png" }, screen: "Profile" },
     ];

@@ -21,7 +21,7 @@ import { db } from "../firebase";
 import { useLandmark } from "../provider/LandmarkProvider";
 import EventCalendar from "../components/EventCalendar";
 import SkeletonBox from "../components/Skeleton";
-import { add } from "date-fns";
+
 import { useUser } from "../context/UserContext";
 import GuestLockOverlay from "../components/guestLockOverlay";
 type Marker = {

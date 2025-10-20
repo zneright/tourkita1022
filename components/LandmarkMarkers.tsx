@@ -120,6 +120,9 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
         if (selectedCategory === "All") return true;
         if (selectedCategory === "Restroom") return l.accessibleRestroom === true;
         if (selectedCategory === "Events") return true;
+        if(selectedCategory === "Augmented Reality") return l.arCameraSupported === true;
+        if (selectedCategory === "Relics/Artifacts" ) return l.categoryOption === "Relics/Artifacts";
+        
         return l.category === selectedCategory || l.categoryOption === selectedCategory;
     });
 
@@ -137,6 +140,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
         if (name.includes("park") || category === "park") return "park";
         if (name.includes("food") || category === "food") return "food";
         if (name.includes("school") || category === "school") return "school";
+        if (category === "relics/artifacts") return "relics";
         return "pin";
     };
 
@@ -145,9 +149,11 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
             landmark: JSON.stringify(landmark),
             id: index,
             iconKey: getIconKey(landmark),
+            name: landmark.name || "Unnamed", 
             isToday: landmark.category === "Event" ? landmark.occursToday || false : false,
         })
     );
+
 
 
     const navigation = useNavigation();
@@ -200,7 +206,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                 return; // no matching events
             }
 
-            // 🟢 NEW: Check if this landmark has a corresponding 3D model in Firestore
+        
             const arTargetRef = doc(db, "arTargets", String(landmark.id || landmark.name));
 
             const arTargetSnap = await getDoc(arTargetRef);
@@ -230,7 +236,6 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
         <>
             <Images
                 images={{
-                    pin: require("../assets/pinB.png"),
                     restroom: require("../assets/restroom.png"),
                     museum: require("../assets/museum.png"),
                     historical: require("../assets/historical.png"),
@@ -239,6 +244,7 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                     food: require("../assets/food.png"),
                     school: require("../assets/school.png"),
                     event: require("../assets/events.png"),
+                    relics: require("../assets/relics.png"),
                 }}
             />
 
@@ -265,6 +271,27 @@ export default function LandmarkMarkers({ selectedCategory, onLoadingChange }: a
                         iconAnchor: "bottom",
                     }}
                 />
+                <SymbolLayer
+                    id="landmark-labels"
+                    style={{
+                        textField: ["get", "name"],
+                        textSize: [
+                            "interpolate", ["linear"], ["zoom"],
+                            10, 6,  
+                            15, 9,   
+                            18, 11   
+                        ],
+                        textOffset: [0, 1.1],
+                        textColor: "#000000",
+                        textHaloColor: "#ffffff",
+                        textHaloWidth: 1,
+                        textAllowOverlap: false, 
+                        textAnchor: "bottom",
+                        textRotationAlignment: "viewport", 
+                    }}
+                />
+
+
             </ShapeSource>
 
             {selectedEvent && (

@@ -14,7 +14,7 @@ import { format, parseISO, isWithinInterval, getDay } from "date-fns";
 import TopHeader from "../components/TopHeader";
 import EventDetailModal from "../components/EventDetailModal";
 import SkeletonBox from "../components/Skeleton";
-import EventListModal from "../components/EventListModal";
+
 
 const weekdayMap: { [key: string]: number } = {
     sun: 0,

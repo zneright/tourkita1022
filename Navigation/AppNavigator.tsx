@@ -54,7 +54,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="CalendarView" component={CalendarViewScreen} />
                     <Stack.Screen name="FAQScreen" component={FAQScreen} />
                     <Stack.Screen name = "View3D" component ={View3D}/>
-                </Stack.Navigator>n
+                </Stack.Navigator>
                 <SelectedLandmarkSheet />
             </LandmarkProvider>
         </GestureHandlerRootView>

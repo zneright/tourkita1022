@@ -9,7 +9,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { format } from "date-fns";
 import TopHeader from "../components/TopHeader";
-import SkeletonBox from "../components/Skeleton"; // Import your SkeletonBox
+import SkeletonBox from "../components/Skeleton";
 
 const TermsScreen = () => {
     const [terms, setTerms] = useState<string[]>([]);

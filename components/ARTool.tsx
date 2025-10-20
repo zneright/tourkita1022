@@ -20,7 +20,7 @@ function ARScene({ modelUrl, imageUrl, videoUrl, title }) {
   useEffect(() => {
     if (!imageUrl) return;
 
-  
+
     ViroARTrackingTargets.createTargets({
       [title || "defaultTarget"]: {
         source: { uri: imageUrl },
@@ -30,9 +30,9 @@ function ARScene({ modelUrl, imageUrl, videoUrl, title }) {
       },
     });
 
-    
+
     const timer = setTimeout(() => {
-      setVideoPosition([0, 1.5, -1]); 
+      setVideoPosition([0, 1.5, -1]);
       setVideoScale([2, 1, 1]);
     }, 5000);
 
@@ -55,7 +55,7 @@ function ARScene({ modelUrl, imageUrl, videoUrl, title }) {
             <ViroVideo
               source={{ uri: videoUrl }}
               loop
-              position={videoPosition} 
+              position={videoPosition}
               scale={videoScale}
             />
           )}

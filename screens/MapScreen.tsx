@@ -8,13 +8,13 @@ import {
     TouchableOpacity,
     StatusBar,
     ActivityIndicator,
-    Button,
+ 
     Switch,
+    AppState,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Navigation/types";
-import { PinchGestureHandlerGestureEvent } from "react-native-gesture-handler";
 import Animated, {
     useSharedValue,
     useAnimatedGestureHandler,
@@ -32,10 +32,11 @@ import LineBoundary from "../components/LineBoundary";
 import * as Location from 'expo-location';
 import WeatherProvider from "../provider/WeatherProvider";
 import CategoryFilter from "../components/CategoryFilter";
-import { set } from "date-fns";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+
 import LottieView from "lottie-react-native";
 import { useUser } from "../context/UserContext";
+import { auth, db } from "../firebase";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 const screenWidth = Dimensions.get("window").width;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Maps">;
@@ -68,6 +69,33 @@ export default function MapsScreen() {
         sw: [120.96574001513486, 14.576564367241561],
 
     };
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", async (nextState) => {
+            const user = auth.currentUser;
+
+            try {
+                const collectionName = isGuest ? "guests" : "users";
+                const userId = user?.uid || (isGuest ? "guest_temp_id" : null);
+
+                if (!userId) return; 
+
+                const userRef = doc(db, collectionName, userId);
+
+                if (nextState.match(/inactive|background/)) {
+                    
+                    await setDoc(userRef, { activeStatus: false }, { merge: true });
+                } else if (nextState === "active") {
+                 
+                    await setDoc(userRef, { activeStatus: true }, { merge: true });
+                }
+            } catch (err) {
+                console.warn("Failed to update online status:", err);
+            }
+        });
+
+        return () => subscription.remove();
+    }, [isGuest]);
+
     const toggleNavigation = () => {
         if (navigationMode) {
 
@@ -87,14 +115,7 @@ export default function MapsScreen() {
         }
     };
 
-    const pinchHandler = useAnimatedGestureHandler<PinchGestureHandlerGestureEvent>({
-        onActive: (event) => {
-            scale.value = event.scale;
-        },
-        onEnd: () => {
-            scale.value = withTiming(1);
-        },
-    });
+    
 
     const { duration, distance, showDirection, directionCoordinates, } = useLandmark();
 
@@ -120,14 +141,14 @@ export default function MapsScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor="#493628" barStyle="light-content" />
-            <TopHeader title="Maps" onSupportPress={() => navigation.navigate("Support")} />
+            <TopHeader title="Map" onSupportPress={() => navigation.navigate("Support")} />
 
             {showCategories && (
                 <CategoryFilter
                     selectedCategory={selectedCategory}
                     onSelectCategory={setSelectedCategory}
                 />
-            )}
+            )}  
 
             <View style={styles.arrowToggle}>
                 <TouchableOpacity
@@ -176,7 +197,7 @@ export default function MapsScreen() {
                             androidRenderMode="gps"
                         />
 
-                        <LineBoundary />
+                        <LineBoundary visible={visible} />
                         <LandmarkMarkers
                             selectedCategory={selectedCategory}
                             onLoadingChange={setIsLoading}

@@ -15,13 +15,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation/types';
 import TopHeader from '../components/TopHeader';
 import BottomFooter from '../components/BottomFooter';
 import { useUser } from '../context/UserContext';
-import { BlurView } from 'expo-blur';
+
 import { setActiveStatus } from '../components/helper';
 import GuestLockOverlay from '../components/guestLockOverlay';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
