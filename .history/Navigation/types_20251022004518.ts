@@ -1,0 +1,41 @@
+export type RootStackParamList = {
+    Login: undefined;
+    SignUp: undefined;
+    Terms: undefined;
+    ForgotPassword: undefined;
+    EmailVerification: {
+        userData: {
+            uid: string;
+            firstName: string;
+            middleInitial: string;
+            lastName: string;
+            gender: string;
+            userType: string;
+            age: number;
+            contactNumber: string;
+            email: string;
+            profileImage: string;
+            status: string;
+            activeStatus: boolean;
+        };
+    };
+    Support: undefined;
+    MainTabs: undefined;
+    Maps: undefined;
+    Search: undefined;
+    ArCam: undefined;
+    Notification: undefined;
+    Profile: undefined;
+    ViewProfile: undefined;
+    EditProfile: undefined;
+    ChangePassword: undefined;
+    Feedback: undefined;
+    Splash: undefined;
+    DeleteAccount: undefined;
+    Map: { latitude: number; longitude: number; name: string };
+    IntramurosStreetView: undefined;
+    CalendarView: undefined;
+    FAQScreen: undefined;
+    View3D: undefined;
+    RelicList: undefined;
+};
