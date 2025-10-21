@@ -37,4 +37,5 @@ export type RootStackParamList = {
     CalendarView: undefined;
     FAQScreen: undefined;
     View3D: undefined;
+    RelicList: undefined;
 };

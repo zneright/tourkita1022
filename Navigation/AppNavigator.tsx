@@ -25,14 +25,14 @@ import DeleteAccountScreen from '../screens/DeleteAccountScreen';
 import CalendarViewScreen from '../screens/CalendarViewScreen';
 import FAQScreen from '../screens/FAQScreen';
 import View3D from '../screens/View3D';
-
+import RelicList from '../screens/RelicList';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AppNavigator = () => {
     return (
         <GestureHandlerRootView>
             <LandmarkProvider>
-                <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Map">
+                <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
                     <Stack.Screen name="Map" component={MapsScreen} />
                     <Stack.Screen name="Splash" component={SplashScreen} />
                     <Stack.Screen name="Login" component={LoginScreen} />
@@ -54,6 +54,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="CalendarView" component={CalendarViewScreen} />
                     <Stack.Screen name="FAQScreen" component={FAQScreen} />
                     <Stack.Screen name = "View3D" component ={View3D}/>
+                    <Stack.Screen name="RelicList" component={RelicList} />
                 </Stack.Navigator>
                 <SelectedLandmarkSheet />
             </LandmarkProvider>

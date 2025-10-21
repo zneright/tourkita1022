@@ -1,5 +1,5 @@
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
     Text,
     Image,
@@ -8,7 +8,9 @@ import {
     ActivityIndicator,
     Modal,
     StyleSheet,
+    Alert,
 } from "react-native";
+import Video from 'react-native-video';
 import { useLandmark } from "../provider/LandmarkProvider";
 import Entypo from "@expo/vector-icons/Entypo";
 import Fontisto from "@expo/vector-icons/Fontisto";
@@ -204,7 +206,7 @@ export default function SelectedLandmarkSheet() {
             const data = snap.data();
             const modelUrl = data.modelUrl;
 
-            navigation.navigate("View3D", {
+            navigation.navigate("RelicList", {
                 modelUrl,
                 title: selectedLandmark.name,
             });
@@ -212,6 +214,49 @@ export default function SelectedLandmarkSheet() {
             console.error("Error fetching model:", e);
         }
     };
+    const handleViewRelics = async () => {
+        try {
+            if (!selectedLandmark) return;
+
+            const q = query(
+                collection(db, "arTargets"),
+                where("category", "==", "Relics/Artifacts"),
+                where("locationName", "==", selectedLandmark.name)
+            );
+
+            const querySnapshot = await getDocs(q);
+            const relics = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+
+            if (relics.length === 0) {
+          
+                Alert.alert(
+                    "No Relics Found",
+                    `There are currently no relics or artifacts listed for ${selectedLandmark.name}.`,
+                    [
+                        {
+                            text: "OK",
+                            onPress: () => console.log("User acknowledged no relics"),
+                        },
+                    ],
+                    { cancelable: true }
+                );
+                return;
+            }
+
+            
+            navigation.navigate("RelicList", {
+                relics,
+                title: selectedLandmark.name,
+            });
+        } catch (e) {
+            console.error("Error fetching relics:", e);
+            Alert.alert("Error", "Failed to fetch relics. Please try again.");
+        }
+    };
+
     const handleGetDirection = () => loadDirection();
 
     if (!selectedLandmark) return null;
@@ -450,7 +495,7 @@ export default function SelectedLandmarkSheet() {
 
                         {/* Description */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Description</Text>
+                            <Text style={styles.sectionTitle}>Historical Background</Text>
                             <Text style={styles.description}>
                                 {selectedLandmark.description
                                     ? selectedLandmark.description.split("\n").map((paragraph: string, pIndex: number) => (
@@ -473,6 +518,25 @@ export default function SelectedLandmarkSheet() {
                                     ))
                                     : "No description provided."}
                             </Text>
+                                {selectedLandmark.arCameraSupported && (
+                                <View style={{ flexDirection: 'column', alignItems: "center" }}>
+                                    <LottieView
+                                        source={require('../assets/animations/viewIn3D.json')}
+                                        style={{ width: 150, height: 150, alignSelf: 'center' }}
+                                        loop
+                                        autoPlay
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.button}
+                                        onPress={() => {
+                                            bottomSheetRef.current?.close();
+                                            handleView3D();
+                                        }}
+                                    >
+                                        <Text style={{ color: "white" }}>View in 3D</Text>
+                                    </TouchableOpacity>
+                                </View>)}
+
                         </View>
 
                         {/* Rating */}
@@ -495,7 +559,7 @@ export default function SelectedLandmarkSheet() {
                                 <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: "center", gap: 20, marginTop: 10 }}>
                                     <View style={{ flexDirection: 'column', alignItems: "center" }}>
                                         <LottieView
-                                            source={require('../assets/animations/viewIn3D.json')}
+                                            source={require('../assets/animations/mapSearch.json')}
                                             style={{ width: 150, height: 150, alignSelf: 'center' }}
                                             loop
                                             autoPlay
@@ -504,10 +568,10 @@ export default function SelectedLandmarkSheet() {
                                             style={styles.button}
                                             onPress={() => {
                                                 bottomSheetRef.current?.close();
-                                                handleView3D();
+                                                handleViewRelics();
                                             }}
                                         >
-                                            <Text style={{ color: "white" }}>View in 3D</Text>
+                                            <Text style={{ color: "white" }}>View Relics/Artifacts</Text>
                                         </TouchableOpacity>
 
 
@@ -552,7 +616,7 @@ export default function SelectedLandmarkSheet() {
                                         >
                                             <Text style={{ color: "white" }}>View in Real World</Text>
                                         </TouchableOpacity>
-
+                                        
 
                                     </View>
                                 </View>
@@ -734,5 +798,8 @@ export default function SelectedLandmarkSheet() {
         color: "#007AFF",
         textDecorationLine: "underline",
     },
-
+    video:{
+        width: '100%',
+        height: 300,
+    }
 });
