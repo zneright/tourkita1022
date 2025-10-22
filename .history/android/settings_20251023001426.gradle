@@ -1,0 +1,23 @@
+// android/settings.gradle
+
+rootProject.name = 'TourKita'
+
+// This includes your main app module
+include ':app'
+
+// This script correctly finds and includes all native modules, including those from Expo
+apply from: new File(
+  settingsDir,
+  "../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
+);
+applySettings(settings)
+
+// This part includes the Viro AR modules
+include ':react_viro', ':arcore_client', ':gvr_common', ':viro_renderer'
+project(':arcore_client').projectDir = new File('../node_modules/@reactvision/react-viro/android/arcore_client')
+project(':gvr_common').projectDir = new File('../node_modules/@reactvision/react-viro/android/gvr_common')
+project(':viro_renderer').projectDir = new File('../node_modules/@reactvision/react-viro/android/viro_renderer')
+project(':react_viro').projectDir = new File('../node_modules/@reactvision/react-viro/android/react_viro')
+
+// This is often required by Expo modules
+useExpoModules()
